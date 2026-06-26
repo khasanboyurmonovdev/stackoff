@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import { connectDb } from './db.js';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -22,6 +23,9 @@ app.use(
 app.get('/api/health', (req, res) => {
   res.json({ ok: true });
 });
+
+// Connect to Mongo BEFORE we start listening; connectDb exits on failure.
+await connectDb();
 
 app.listen(PORT, () => {
   console.log(`Stackoff server listening on http://localhost:${PORT}`);
