@@ -1,4 +1,6 @@
 import 'dotenv/config';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -8,10 +10,15 @@ import arenaRouter from './routes/arena.js';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-app.use(helmet());
+app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(cors());
 app.use(express.json());
+
+// Serve the assembled clip audio. server/audio/ holds <clipId>.mp3 produced by
+// the pipeline (gitignored). AUDIO_ORIGIN should point here for local dev.
+app.use('/audio', express.static(path.resolve(__dirname, '..', 'audio')));
 app.use(
   rateLimit({
     windowMs: 15 * 60 * 1000,

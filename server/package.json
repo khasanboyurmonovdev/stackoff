@@ -8,7 +8,8 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
-    "seed": "node src/scripts/seed.js"
+    "seed": "node src/scripts/seed.js",
+    "seed:clips": "node src/scripts/seedClips.js"
   },
   "dependencies": {
     "cors": "^2.8.5",

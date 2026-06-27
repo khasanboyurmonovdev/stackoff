@@ -12,11 +12,20 @@ function pick(arr) {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-function sampleTwoDistinct(arr) {
-  const i = Math.floor(Math.random() * arr.length);
-  let j = Math.floor(Math.random() * (arr.length - 1));
-  if (j >= i) j++;
-  return [arr[i], arr[j]];
+// Pick a random unordered pair of stack clips whose stacks use DIFFERENT Piper
+// voices, so timbre can't betray which clip is which. Returns null if every
+// candidate pair shares a voice (e.g. only same-voice stacks have clips here).
+function sampleArenaPair(stackClips, voiceByStackId) {
+  const pairs = [];
+  for (let i = 0; i < stackClips.length; i++) {
+    for (let j = i + 1; j < stackClips.length; j++) {
+      if (voiceByStackId[stackClips[i].sourceId] !== voiceByStackId[stackClips[j].sourceId]) {
+        pairs.push([stackClips[i], stackClips[j]]);
+      }
+    }
+  }
+  if (!pairs.length) return null;
+  return pairs[Math.floor(Math.random() * pairs.length)];
 }
 
 function shuffle(arr) {
@@ -41,12 +50,18 @@ export async function buildBattle() {
   const scenarioIds = await Clip.distinct('scenarioId');
   if (!scenarioIds.length) return { available: false };
 
+  // Voice lookup so we never pit two same-voice stacks against each other.
+  const stacks = await Stack.find().lean();
+  const voiceByStackId = Object.fromEntries(stacks.map((s) => [s._id, s.voice]));
+
   for (const scenarioId of shuffle(scenarioIds)) {
     const clips = await Clip.find({ scenarioId }).lean();
     const stackClips = clips.filter((c) => c.sourceType === 'stack');
     const humanClips = clips.filter((c) => c.sourceType === 'human');
 
-    const canArena = stackClips.length >= 2;
+    // Only a different-voice pair counts as a viable arena battle.
+    const arenaPair = sampleArenaPair(stackClips, voiceByStackId);
+    const canArena = arenaPair !== null;
     const canGolden = humanClips.length >= 1 && stackClips.length >= 1;
     if (!canArena && !canGolden) continue;
 
@@ -58,7 +73,7 @@ export async function buildBattle() {
       c1 = pick(humanClips);
       c2 = pick(stackClips);
     } else {
-      [c1, c2] = sampleTwoDistinct(stackClips);
+      [c1, c2] = arenaPair;
     }
 
     // Randomize which is A vs B so position leaks nothing.

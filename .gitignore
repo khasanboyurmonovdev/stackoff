@@ -4,6 +4,7 @@ dist/
 build/
 server/audio/
 pipeline/out/
+__pycache__/
 
 # Machine-specific CA bundle (not project code, never commit)
 pipeline/certs/
