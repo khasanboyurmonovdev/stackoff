@@ -4,6 +4,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { connectDb } from './db.js';
+import arenaRouter from './routes/arena.js';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -23,6 +24,8 @@ app.use(
 app.get('/api/health', (req, res) => {
   res.json({ ok: true });
 });
+
+app.use('/api', arenaRouter);
 
 // Connect to Mongo BEFORE we start listening; connectDb exits on failure.
 await connectDb();

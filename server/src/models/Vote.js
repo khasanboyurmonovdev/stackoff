@@ -14,4 +14,8 @@ const voteSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now, index: true },
 });
 
+// Hard guarantee: one vote per voter per battle. This unique index is the real
+// duplicate guard — applyVote's findOne is only a fast path for a clean 409.
+voteSchema.index({ battleId: 1, voterId: 1 }, { unique: true });
+
 export const Vote = mongoose.model('Vote', voteSchema);
