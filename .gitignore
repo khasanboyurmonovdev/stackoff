@@ -10,3 +10,6 @@ pipeline/certs/
 
 # Piper voice models (~60MB each, regenerable downloads, not source)
 pipeline/voices/
+
+# Raw human recording originals (local-only source; standardized WAVs are committed)
+pipeline/human/raw/
