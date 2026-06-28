@@ -1,1 +1,264 @@
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Space+Grotesk:wght@400;500;700&display=swap');
 @import 'tailwindcss';
+
+/* ── Stackoff theme: "neon call-booth arcade" ──────────────────────────────
+   Deep violet base, magenta vs. cyan neon duel (A = magenta, B = cyan),
+   lime = "you spotted the human" win, amber = streak fire. */
+@theme {
+  --color-void: #190a2e;
+  --color-void-deep: #120720;
+  --color-grape: #2d1a53;
+  --color-magenta: #ff3d8b;
+  --color-cyan: #22e0d6;
+  --color-lime: #c6ff4a;
+  --color-amber: #ffc53d;
+  --color-cream: #fff6e9;
+  --color-mist: #b9a8e0; /* muted lavender — secondary text */
+
+  --font-display: 'Bricolage Grotesque', ui-sans-serif, system-ui, sans-serif;
+  --font-body: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    font-family: var(--font-body);
+    color: var(--color-cream);
+    background:
+      radial-gradient(130% 100% at 50% -10%, #341765 0%, #1c0c36 52%, #120720 100%) fixed;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    -webkit-tap-highlight-color: transparent;
+  }
+  button {
+    font-family: inherit;
+  }
+  :focus-visible {
+    outline: 3px solid var(--color-cyan);
+    outline-offset: 2px;
+  }
+}
+
+/* ── Signature: live equalizer on the playing clip ── */
+@keyframes eq {
+  0%,
+  100% {
+    transform: scaleY(0.22);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+.eq {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 24px;
+}
+.eq-bar {
+  width: 4px;
+  height: 100%;
+  border-radius: 2px;
+  background: currentColor;
+  transform: scaleY(0.28);
+  transform-origin: center;
+}
+.eq.is-playing .eq-bar {
+  animation: eq 0.7s ease-in-out infinite;
+}
+
+/* ── Tactile press ── */
+.press {
+  transition:
+    transform 0.08s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease;
+  touch-action: manipulation;
+}
+.press:active {
+  transform: scale(0.96);
+}
+
+/* ── Reveal sheet slides up ── */
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+.sheet {
+  animation: sheet-up 0.42s cubic-bezier(0.2, 0.9, 0.2, 1);
+}
+
+/* ── Result headline pop ── */
+@keyframes pop-in {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.pop {
+  animation: pop-in 0.5s cubic-bezier(0.2, 1.2, 0.3, 1) both;
+}
+
+/* ── Staggered rise ── */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.rise {
+  animation: rise 0.4s ease both;
+}
+
+/* ── Nudge shake (tried to vote too early) ── */
+@keyframes shake {
+  10%,
+  90% {
+    transform: translateX(-1px);
+  }
+  20%,
+  80% {
+    transform: translateX(2px);
+  }
+  30%,
+  50%,
+  70% {
+    transform: translateX(-5px);
+  }
+  40%,
+  60% {
+    transform: translateX(5px);
+  }
+}
+.shake {
+  animation: shake 0.5s;
+}
+
+/* ── Confetti (golden win) ── */
+@keyframes confetti-fall {
+  0% {
+    transform: translateY(-12px) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(140px) rotate(420deg);
+    opacity: 0;
+  }
+}
+.confetti-piece {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  animation: confetti-fall 1s ease-in forwards;
+}
+
+/* ── Page/view entrance ── */
+@keyframes view-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.view-in {
+  animation: view-in 0.32s ease both;
+}
+
+/* ── Hover lift for desktop cards / leaderboard rows ── */
+.lift {
+  transition:
+    transform 0.16s ease,
+    box-shadow 0.16s ease,
+    border-color 0.16s ease,
+    background-color 0.16s ease;
+}
+@media (hover: hover) {
+  .lift:hover {
+    transform: translateY(-2px);
+  }
+}
+
+/* ── Champion glow: lime↔amber pulse on the #1 podium ── */
+@keyframes glow-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 1px rgba(198, 255, 74, 0.45),
+      0 0 50px -10px rgba(198, 255, 74, 0.45);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1px rgba(255, 197, 61, 0.55),
+      0 0 70px -8px rgba(255, 197, 61, 0.5);
+  }
+}
+.glow-pulse {
+  animation: glow-pulse 3.2s ease-in-out infinite;
+}
+
+/* ── Signature: a slow sheen sweeping the share card ── */
+@keyframes sheen {
+  0% {
+    transform: translateX(-130%) skewX(-12deg);
+  }
+  60%,
+  100% {
+    transform: translateX(160%) skewX(-12deg);
+  }
+}
+.sheen-layer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 42%,
+    rgba(255, 255, 255, 0.16) 50%,
+    transparent 58%
+  );
+  transform: translateX(-130%) skewX(-12deg);
+  animation: sheen 4.2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .eq.is-playing .eq-bar,
+  .sheet,
+  .pop,
+  .rise,
+  .shake,
+  .confetti-piece,
+  .view-in,
+  .glow-pulse,
+  .sheen-layer {
+    animation: none !important;
+  }
+  .lift {
+    transition: none !important;
+  }
+  .eq-bar {
+    transform: scaleY(0.6);
+  }
+}
