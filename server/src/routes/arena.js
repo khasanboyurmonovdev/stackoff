@@ -2,7 +2,8 @@ import express from 'express';
 import { buildBattle, applyVote } from '../services/arena.js';
 import { Stack } from '../models/Stack.js';
 import { Voter } from '../models/Voter.js';
-import { normalize, uncertaintyBand } from '../lib/elo.js';
+import { humannessFromRating, uncertaintyBand } from '../lib/elo.js';
+import { Baseline } from '../models/Baseline.js';
 
 const router = express.Router();
 
@@ -49,14 +50,15 @@ router.post('/vote', async (req, res, next) => {
 // GET /api/leaderboard — stacks by rating desc, scaled to humanness 0-100.
 router.get('/leaderboard', async (req, res, next) => {
   try {
-    const stacks = (await Stack.find().lean()).sort((a, b) => b.rating - a.rating);
-    const normalized = normalize(stacks.map((s) => ({ id: s._id, rating: s.rating })));
-    const humannessById = Object.fromEntries(normalized.map((n) => [n.id, n.humanness]));
+    // Fall back to the default anchor if the baseline isn't seeded yet, so the
+    // route never crashes pre-seed.
+    const baseline = (await Baseline.findById('human').lean()) ?? { rating: 1500, votes: 0 };
 
-    const rows = stacks.map((s) => ({
+    const stacks = (await Stack.find().lean()).sort((a, b) => b.rating - a.rating);
+    const stackRows = stacks.map((s) => ({
       id: s._id,
       name: s.name,
-      humanness: Math.round(humannessById[s._id]),
+      humanness: Math.round(humannessFromRating(s.rating, baseline.rating)),
       uncertainty: uncertaintyBand(s.votes),
       votes: s.votes,
       priceTier: s.priceTier,
@@ -64,7 +66,16 @@ router.get('/leaderboard', async (req, res, next) => {
       llm: s.llm,
       tts: s.tts,
     }));
-    res.json(rows);
+
+    const humanRow = {
+      id: 'human',
+      name: 'Human',
+      isBaseline: true,
+      humanness: 100,
+      votes: baseline.votes,
+    };
+
+    res.json([humanRow, ...stackRows]);
   } catch (e) {
     next(e);
   }

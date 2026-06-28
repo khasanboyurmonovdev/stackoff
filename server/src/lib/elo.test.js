@@ -5,7 +5,7 @@ import {
   expectedScore,
   updateRatings,
   adaptiveK,
-  normalize,
+  humannessFromRating,
   uncertaintyBand,
 } from './elo.js';
 
@@ -52,23 +52,19 @@ check('equal ratings -> 0.5 expected', near(expectedScore(1200, 1200), 0.5));
   check('adaptiveK floors at 12', adaptiveK(100000) === 12);
 }
 
-// 5. normalize maps top to 100 and bottom to 0.
+// 5. humannessFromRating: human anchor is the ceiling, stacks fall below by gap.
 {
-  const out = normalize([
-    { id: 'a', rating: 1300 },
-    { id: 'b', rating: 1100 },
-    { id: 'c', rating: 1200 },
-  ]);
-  const byId = Object.fromEntries(out.map((x) => [x.id, x]));
-  check('normalize top -> 100', near(byId.a.humanness, 100));
-  check('normalize bottom -> 0', near(byId.b.humanness, 0));
-  check('normalize mid between', byId.c.humanness > 0 && byId.c.humanness < 100);
-
-  const eq = normalize([
-    { id: 'x', rating: 1200 },
-    { id: 'y', rating: 1200 },
-  ]);
-  check('normalize all-equal no divide-by-zero', eq.every((x) => Number.isFinite(x.humanness)));
+  const human = 1500;
+  check('at human rating -> capped below 100', humannessFromRating(human, human) < 100);
+  check('above human still clamped below 100', humannessFromRating(1600, human) < 100);
+  check('higher rating -> higher humanness',
+    humannessFromRating(1320, human) > humannessFromRating(1120, human));
+  check('stays within [0,100]',
+    [800, 1120, 1320, 1500].every((r) => {
+      const h = humannessFromRating(r, human);
+      return h >= 0 && h <= 100;
+    }));
+  check('far below human floors at 0', humannessFromRating(800, human) === 0);
 }
 
 // 6. Uncertainty narrows with more votes.

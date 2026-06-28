@@ -26,18 +26,20 @@ export function adaptiveK(votes) {
   return Math.max(12, Math.round(36 / (1 + votes / 30)));
 }
 
-// Map [{id, rating}] to the same items with a `humanness` 0-100 added via
-// min-max scaling (top rating -> 100, bottom -> 0). When every rating is equal
-// there is no spread, so everyone gets 50 instead of dividing by zero.
-export function normalize(items) {
-  const ratings = items.map((it) => it.rating);
-  const min = Math.min(...ratings);
-  const max = Math.max(...ratings);
-  const span = max - min;
-  return items.map((it) => ({
-    ...it,
-    humanness: span === 0 ? 50 : ((it.rating - min) / span) * 100,
-  }));
+// How many Elo points below the human baseline map all the way down to 0
+// humanness. The gap-to-percent scale: a stack one full SPAN below the human
+// scores 0; at the human's rating it would hit the ceiling.
+export const HUMANNESS_SPAN = 600;
+
+// Absolute humanness on a fixed 0-100 scale anchored to the human baseline.
+// The human's rating is the ceiling (100); a stack scores lower the further its
+// rating sits below the human, linearly in the rating gap. Stacks are clamped
+// strictly below 100 — only the human baseline itself is the 100 anchor — so a
+// stack that ever climbs to/over the human still reads as "almost", never 100.
+export function humannessFromRating(rating, humanRating) {
+  const gap = humanRating - rating;
+  const raw = 100 * (1 - gap / HUMANNESS_SPAN);
+  return Math.max(0, Math.min(99, raw));
 }
 
 // Confidence band around a rating: wide with few votes, narrowing as votes grow.
