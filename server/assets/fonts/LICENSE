@@ -1,0 +1,21 @@
+Vendored fonts — SIL Open Font License 1.1
+==========================================
+
+Both font families bundled in this directory are licensed under the SIL Open
+Font License, Version 1.1 (OFL-1.1). They are committed as static WOFF instances
+solely so the server-side OG share-card renderer (Satori) has real font buffers.
+
+  Bricolage Grotesque  (BricolageGrotesque-800.woff)
+    Copyright (c) The Bricolage Grotesque Project Authors
+    https://github.com/ateliertriay/bricolage
+
+  Space Grotesk        (SpaceGrotesk-500.woff, SpaceGrotesk-700.woff)
+    Copyright (c) The Space Grotesk Project Authors
+    https://github.com/floriankarsten/space-grotesk
+
+The full OFL-1.1 text is available at:
+  https://openfontlicense.org/open-font-license-official-text/
+
+Under OFL-1.1 these files may be bundled and redistributed with this software.
+The Reserved Font Names ("Bricolage Grotesque", "Space Grotesk") must not be used
+to promote modified versions; these files are unmodified upstream instances.

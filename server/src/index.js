@@ -7,10 +7,16 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { connectDb } from './db.js';
 import arenaRouter from './routes/arena.js';
+import shareRouter from './routes/share.js';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// Share unfurl routes go FIRST — before helmet (so the default CSP can't block a
+// crawler rendering the card/HTML) and before the rate limiter (so social
+// unfurlers aren't throttled). Same spirit as keeping /audio outside the limiter.
+app.use('/s', shareRouter);
 
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(cors());
