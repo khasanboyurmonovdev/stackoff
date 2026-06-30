@@ -42,10 +42,10 @@ function ResultCard({ side, clip, picked }) {
 
   return (
     <div
-      className="rise relative rounded-2xl border-2 bg-grape/50 p-4"
+      className="rise relative rounded-2xl border-2 bg-grape/50 p-3.5"
       style={{ borderColor: picked ? accent : 'rgba(255,255,255,0.10)' }}
     >
-      <div className="mb-2 flex items-center gap-2">
+      <div className="mb-1.5 flex items-center gap-2">
         <span className="font-display text-2xl font-extrabold leading-none" style={{ color: accent }}>
           {side}
         </span>
@@ -65,13 +65,13 @@ function ResultCard({ side, clip, picked }) {
         <div>
           <p className="font-display text-xl font-bold text-cream">🤖 {info.name}</p>
           {info.stt && (
-            <div className="mt-2 flex flex-wrap gap-1.5">
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
               <Chip label="STT" value={info.stt} />
               <Chip label="LLM" value={info.llm} />
               <Chip label="TTS" value={info.tts} />
             </div>
           )}
-          {info.blurb && <p className="mt-2.5 text-sm leading-snug text-mist">{info.blurb}</p>}
+          {info.blurb && <p className="mt-2 text-sm leading-snug text-mist">{info.blurb}</p>}
         </div>
       )}
     </div>
@@ -101,30 +101,40 @@ export default function Reveal({ reveal, stats, onNext, onViewStats }) {
     };
   }
 
+  // Full opaque screen (nothing renders behind it — the play view is unmounted).
+  // On phone it's a flex column that exactly fills the visible viewport: header and
+  // the Next button stay pinned, only the inner card region scrolls if a persona
+  // blurb runs long — so the whole reveal fits without page-scrolling.
+  //
+  // Height comes from the outer fixed `inset-0` (the true visible viewport) via
+  // `h-full` — NOT `h-[100dvh]`, which overrides `bottom:0` and overflows past the
+  // fold on a real phone. The bottom padding reserves the fixed tab bar's zone
+  // (same `safe-area + 5.5rem` constant AppShell uses) so Next sits above the tab
+  // bar, never behind it; dropped at md+ where the tab bar is hidden.
   return (
-    <div className="fixed inset-0 z-40 overflow-y-auto bg-void-deep/95 backdrop-blur-md lg:flex lg:items-center lg:justify-center lg:p-6">
-      <div className="sheet mx-auto flex min-h-[100dvh] w-full max-w-[440px] flex-col px-5 pb-8 pt-[max(1.5rem,env(safe-area-inset-top))] lg:min-h-0 lg:max-h-[92vh] lg:overflow-y-auto lg:rounded-[2rem] lg:border lg:border-white/10 lg:bg-void/80 lg:pb-7 lg:pt-7 lg:shadow-[0_40px_120px_-30px_rgba(0,0,0,0.9)]">
-        <div className="relative pt-6 text-center lg:pt-2">
+    <div className="fixed inset-0 z-40 bg-void-deep lg:flex lg:items-center lg:justify-center lg:overflow-y-auto lg:p-6">
+      <div className="sheet mx-auto flex h-full w-full max-w-[440px] flex-col px-5 pb-[calc(env(safe-area-inset-bottom)+5.5rem)] pt-[max(1rem,env(safe-area-inset-top))] md:pb-7 lg:h-auto lg:max-h-[92vh] lg:overflow-y-auto lg:rounded-[2rem] lg:border lg:border-white/10 lg:bg-void/80 lg:px-7 lg:pb-7 lg:pt-7 lg:shadow-[0_40px_120px_-30px_rgba(0,0,0,0.9)]">
+        <div className="relative shrink-0 pt-2 text-center">
           {golden && reveal.correct && <Confetti />}
-          <div className="pop text-6xl" aria-hidden>
+          <div className="pop text-5xl lg:text-6xl" aria-hidden>
             {banner.emoji}
           </div>
-          <h2 className="pop mt-3 font-display text-3xl font-extrabold leading-tight" style={{ color: banner.tone }}>
+          <h2 className="pop mt-2 font-display text-2xl font-extrabold leading-tight lg:text-3xl" style={{ color: banner.tone }}>
             {banner.title}
           </h2>
-          <p className="mt-1 text-mist">{banner.sub}</p>
+          <p className="mt-1 text-sm text-mist lg:text-base">{banner.sub}</p>
         </div>
 
         {golden && (
-          <div className="mt-5 grid grid-cols-2 gap-3">
-            <div className="rounded-2xl bg-white/8 p-3 text-center">
+          <div className="mt-3 grid shrink-0 grid-cols-2 gap-3 lg:mt-5">
+            <div className="rounded-2xl bg-white/8 p-2.5 text-center lg:p-3">
               <div className="font-display text-3xl font-extrabold text-amber">
                 <CountUp value={reveal.currentStreak ?? stats?.currentStreak ?? 0} />
                 <span className="ml-1 text-2xl">🔥</span>
               </div>
               <p className="mt-0.5 text-xs uppercase tracking-wide text-mist">streak</p>
             </div>
-            <div className="rounded-2xl bg-white/8 p-3 text-center">
+            <div className="rounded-2xl bg-white/8 p-2.5 text-center lg:p-3">
               <div className="font-display text-3xl font-extrabold text-lime">
                 <CountUp value={Math.round((reveal.accuracy ?? stats?.accuracy ?? 0) * 100)} suffix="%" />
               </div>
@@ -133,13 +143,15 @@ export default function Reveal({ reveal, stats, onNext, onViewStats }) {
           </div>
         )}
 
-        <p className="mt-6 text-center font-body text-xs font-bold uppercase tracking-[0.2em] text-mist">The reveal</p>
-        <div className="mt-2 space-y-3">
-          <ResultCard side="A" clip={clipA} picked={pickedSide === 'A'} />
-          <ResultCard side="B" clip={clipB} picked={pickedSide === 'B'} />
+        <div className="mt-4 flex min-h-0 flex-1 flex-col lg:mt-6 lg:flex-none">
+          <p className="shrink-0 text-center font-body text-xs font-bold uppercase tracking-[0.2em] text-mist">The reveal</p>
+          <div className="mt-2 flex-1 space-y-2.5 overflow-y-auto lg:flex-none lg:overflow-visible">
+            <ResultCard side="A" clip={clipA} picked={pickedSide === 'A'} />
+            <ResultCard side="B" clip={clipB} picked={pickedSide === 'B'} />
+          </div>
         </div>
 
-        <div className="mt-auto pt-6 lg:mt-7">
+        <div className="shrink-0 pt-4 lg:pt-7">
           <button
             type="button"
             onClick={onNext}
@@ -151,7 +163,7 @@ export default function Reveal({ reveal, stats, onNext, onViewStats }) {
             <button
               type="button"
               onClick={onViewStats}
-              className="press mt-3 w-full rounded-2xl py-2.5 font-display text-sm font-bold text-mist transition-colors hover:text-cream"
+              className="press mt-2.5 w-full rounded-2xl py-2 font-display text-sm font-bold text-mist transition-colors hover:text-cream"
             >
               See your stats & share →
             </button>

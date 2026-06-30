@@ -2,9 +2,12 @@
 // Mirrors client ShareCard.jsx — big accuracy %, best-streak + calls-judged
 // tiles, neon-violet background — but rendered from a token payload, no DOM.
 //
-// NOTE: no emoji here. Satori throws on any glyph it has no font for, and emoji
-// need a separate emoji-font / loadAdditionalAsset path. ShareCard's 👂/🔥 are
-// intentionally dropped on the server card for now (follow-up if we want them).
+// Emoji: Satori throws on any glyph it has no font for, and the monochrome Noto
+// Emoji variable font crashes satori's parser. So we render emoji the way satori
+// recommends — `graphemeImages`, which swaps a grapheme for an inline <image>.
+// We vendor the two color Twemoji SVGs we actually use (🔥 best streak, 👂 golden
+// ears) under assets/emoji/ and embed them as data URIs. Full color, offline, and
+// it matches the in-app UI (ShareCard.jsx uses the same two emoji).
 import satori from 'satori';
 import { Resvg } from '@resvg/resvg-js';
 import { readFileSync } from 'node:fs';
@@ -12,7 +15,8 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const fontDir = path.join(__dirname, '..', '..', 'assets', 'fonts');
+const assetsDir = path.join(__dirname, '..', '..', 'assets');
+const fontDir = path.join(assetsDir, 'fonts');
 const read = (f) => readFileSync(path.join(fontDir, f));
 
 // Loaded once at module init; the renderer is hot after first import.
@@ -21,6 +25,15 @@ const FONTS = [
   { name: 'Space Grotesk', data: read('SpaceGrotesk-500.woff'), weight: 500, style: 'normal' },
   { name: 'Space Grotesk', data: read('SpaceGrotesk-700.woff'), weight: 700, style: 'normal' },
 ];
+
+// Vendored Twemoji SVGs -> data URIs, keyed by the emoji grapheme. Satori draws
+// each as an inline image sized to the surrounding font-size.
+const emojiDataUri = (file) =>
+  `data:image/svg+xml;base64,${readFileSync(path.join(assetsDir, 'emoji', file)).toString('base64')}`;
+const GRAPHEME_IMAGES = {
+  '🔥': emojiDataUri('1f525.svg'),
+  '👂': emojiDataUri('1f442.svg'),
+};
 
 // Brand palette (subset mirrored from client index.css).
 const C = {
@@ -44,6 +57,7 @@ function label(text, color) {
   }, text);
 }
 
+// `value` may be a string or an array of inline nodes (e.g. number + 🔥 image).
 function statTile(value, caption, valueColor) {
   return el('div', {
     display: 'flex',
@@ -53,7 +67,7 @@ function statTile(value, caption, valueColor) {
     backgroundColor: 'rgba(255,255,255,0.08)',
     padding: '20px 28px',
   }, [
-    el('div', { fontFamily: 'Bricolage Grotesque', fontWeight: 800, fontSize: 52, color: valueColor }, value),
+    el('div', { display: 'flex', alignItems: 'center', fontFamily: 'Bricolage Grotesque', fontWeight: 800, fontSize: 52, color: valueColor }, value),
     el('div', { fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 18, letterSpacing: 2, textTransform: 'uppercase', color: C.mist, marginTop: 4 }, caption),
   ]);
 }
@@ -75,6 +89,9 @@ function buildTree(payload) {
       el('span', { color: '#E879F9' }, 'off'),
     ]),
     el('div', {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8,
       fontFamily: 'Space Grotesk',
       fontWeight: 700,
       fontSize: 18,
@@ -84,7 +101,7 @@ function buildTree(payload) {
       backgroundColor: 'rgba(255,255,255,0.10)',
       borderRadius: 999,
       padding: '8px 20px',
-    }, 'Golden ears'),
+    }, '👂 Golden ears'),
   ]);
 
   let middle;
@@ -101,7 +118,11 @@ function buildTree(payload) {
         el('div', { fontFamily: 'Bricolage Grotesque', fontWeight: 800, fontSize: 80, color: C.lime, marginLeft: 8, marginBottom: 18 }, '%'),
       ]),
       el('div', { display: 'flex', gap: 20, marginTop: 28 }, [
-        statTile(String(bestStreak), 'Best streak', C.amber),
+        statTile(
+          [String(bestStreak), el('span', { display: 'flex', marginLeft: 10 }, '🔥')],
+          'Best streak',
+          C.amber,
+        ),
         statTile(Number(votes).toLocaleString('en-US'), 'Calls judged', C.cream),
       ]),
     ]);
@@ -137,6 +158,11 @@ function buildTree(payload) {
 // payload: the verified share payload, or null/invalid -> generic card.
 // Returns a PNG Buffer (1200x630).
 export async function renderShareCardPng(payload) {
-  const svg = await satori(buildTree(payload), { width: 1200, height: 630, fonts: FONTS });
+  const svg = await satori(buildTree(payload), {
+    width: 1200,
+    height: 630,
+    fonts: FONTS,
+    graphemeImages: GRAPHEME_IMAGES,
+  });
   return new Resvg(svg, { fitTo: { mode: 'width', value: 1200 } }).render().asPng();
 }

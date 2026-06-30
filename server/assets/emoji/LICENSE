@@ -1,0 +1,16 @@
+Twemoji
+=======
+
+The emoji graphics in this directory (1f525.svg "fire", 1f442.svg "ear") are
+from the Twemoji project.
+
+Copyright 2020 Twitter, Inc and other contributors.
+
+Graphics licensed under CC-BY 4.0:
+https://creativecommons.org/licenses/by/4.0/
+
+Source: https://github.com/jdecked/twemoji (maintained fork of twitter/twemoji)
+
+These SVGs are vendored and embedded (as data URIs) into the server-rendered
+Satori share card via satori's `graphemeImages` option so that 🔥 and 👂 render
+in full color, matching the in-app UI.

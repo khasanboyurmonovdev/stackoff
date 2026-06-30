@@ -52,17 +52,30 @@ function ScenarioPrompt({ scenarioId }) {
 }
 
 function VoteButton({ side, accent, armed, loading, onClick }) {
+  // LOCKED (clips not both played): muted, flat, obviously inactive — barely-there
+  // fill, dim text, no shadow. UNLOCKED (armed): the full-saturation accent pops
+  // with a colored glow. The gap between the two states should read at a glance.
+  const armedStyle = {
+    background: accent,
+    color: '#190a2e',
+    boxShadow: `0 12px 28px -10px ${accent}, inset 0 1px 0 rgba(255,255,255,0.35)`,
+    border: '1px solid transparent',
+  };
+  const lockedStyle = {
+    background: 'rgba(255,255,255,0.035)',
+    color: 'rgba(185,168,224,0.4)', // dimmed mist
+    boxShadow: 'none',
+    border: '1px solid rgba(255,255,255,0.05)',
+  };
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={loading}
       aria-label={`Vote: ${side} is more human`}
-      className="press flex min-h-[72px] flex-col items-center justify-center rounded-2xl font-display"
-      style={{
-        background: armed ? accent : 'rgba(255,255,255,0.06)',
-        color: armed ? '#190a2e' : 'var(--color-mist)',
-      }}
+      aria-disabled={!armed}
+      className="press flex min-h-[72px] flex-col items-center justify-center rounded-2xl font-display transition-all duration-300 ease-out"
+      style={armed ? armedStyle : lockedStyle}
     >
       {loading ? (
         <span
@@ -294,21 +307,23 @@ export default function PlayView({ voterId, stats, setStats, onNavigate }) {
       />
     );
   } else {
-    panel = machine; // ready + reveal both keep the machine visible
+    panel = machine;
+  }
+
+  // The reveal is a full, dedicated screen: it fully replaces the play view (the
+  // grid below is not rendered) so nothing bleeds through behind it.
+  if (status === 'reveal' && reveal) {
+    return (
+      <Reveal reveal={reveal} stats={stats} onNext={loadBattle} onViewStats={() => onNavigate('profile')} />
+    );
   }
 
   return (
-    <>
-      <div className="flex flex-1 flex-col lg:grid lg:grid-cols-[1.05fr_minmax(0,520px)] lg:items-center lg:gap-14 lg:py-8">
-        <HeroCopy />
-        <section className="flex flex-1 flex-col lg:flex-none lg:rounded-[2rem] lg:border lg:border-white/10 lg:bg-grape/40 lg:p-7 lg:shadow-[0_40px_90px_-40px_rgba(0,0,0,0.85)] lg:backdrop-blur">
-          {panel}
-        </section>
-      </div>
-
-      {status === 'reveal' && reveal && (
-        <Reveal reveal={reveal} stats={stats} onNext={loadBattle} onViewStats={() => onNavigate('profile')} />
-      )}
-    </>
+    <div className="flex flex-1 flex-col lg:grid lg:grid-cols-[1.05fr_minmax(0,520px)] lg:items-center lg:gap-14 lg:py-8">
+      <HeroCopy />
+      <section className="flex flex-1 flex-col lg:flex-none lg:rounded-[2rem] lg:border lg:border-white/10 lg:bg-grape/40 lg:p-7 lg:shadow-[0_40px_90px_-40px_rgba(0,0,0,0.85)] lg:backdrop-blur">
+        {panel}
+      </section>
+    </div>
   );
 }
