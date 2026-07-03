@@ -1,19 +1,21 @@
 @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Space+Grotesk:wght@400;500;700&display=swap');
 @import 'tailwindcss';
 
-/* ── Stackoff theme: "neon call-booth arcade" ──────────────────────────────
-   Deep violet base, magenta vs. cyan neon duel (A = magenta, B = cyan),
-   lime = "you spotted the human" win, amber = streak fire. */
+/* ── Stackoff theme: "premium call-booth, single light source" ──────────────
+   Near-black cool canvas (#0B0B12) with ONE soft violet/magenta glow bleeding
+   from the top-right. Accents are punctuation, used sparingly: magenta = A /
+   primary, cyan = B / secondary, lime = success / human spotted, amber = streak.
+   All non-accent greys live on a cool near-neutral scale (no purple tint). */
 @theme {
-  --color-void: #190a2e;
-  --color-void-deep: #120720;
-  --color-grape: #2d1a53;
+  --color-void: #0b0b12; /* base canvas — near-black, faint cool tint */
+  --color-void-deep: #07070d; /* deeper: headers, tab bar, full-screen reveal */
+  --color-grape: #15161f; /* elevated surface (cool neutral, not purple) */
   --color-magenta: #ff3d8b;
   --color-cyan: #22e0d6;
   --color-lime: #c6ff4a;
   --color-amber: #ffc53d;
-  --color-cream: #fff6e9;
-  --color-mist: #b9a8e0; /* muted lavender — secondary text */
+  --color-cream: #f4f5fb; /* primary text / light surfaces — cool near-white */
+  --color-mist: #9499a8; /* secondary text — cool near-neutral grey */
 
   --font-display: 'Bricolage Grotesque', ui-sans-serif, system-ui, sans-serif;
   --font-body: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
@@ -28,8 +30,25 @@
     min-height: 100dvh;
     font-family: var(--font-body);
     color: var(--color-cream);
-    background:
-      radial-gradient(130% 100% at 50% -10%, #341765 0%, #1c0c36 52%, #120720 100%) fixed;
+    /* Single light source: one soft violet→magenta radial bleeding from the
+       top-right, over a faint dot-grid texture (~2.5% white), over near-black.
+       No flat fill, no loud animated gradient. */
+    background-color: #0b0b12;
+    background-image:
+      radial-gradient(
+        62% 52% at 92% -8%,
+        rgba(255, 61, 139, 0.14) 0%,
+        rgba(139, 124, 246, 0.08) 34%,
+        rgba(11, 11, 18, 0) 68%
+      ),
+      radial-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+    background-size:
+      100% 100%,
+      22px 22px;
+    background-position:
+      0 0,
+      0 0;
+    background-attachment: fixed, fixed;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
     -webkit-tap-highlight-color: transparent;
@@ -41,6 +60,51 @@
     outline: 3px solid var(--color-cyan);
     outline-offset: 2px;
   }
+}
+
+/* ── Lifted-glass surface: 1px hairline border + a faint top-edge highlight so
+   cards read as raised glass rather than flat fills. Pair with a bg-* class. ── */
+.glass {
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
+}
+/* Just the top-edge highlight, for cards that already manage their own border. */
+.edge-hi {
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
+}
+
+/* ── Lux card: gives a flat dark fill inner life. A vertical sheen (lighter at
+   the top edge, fading darker toward the bottom) layers on TOP of the element's
+   own bg-* color, plus a top-edge highlight and a soft drop shadow that lifts
+   the card off the canvas. Subtle, Linear/Vercel-grade — not neon. ──────────── */
+.lux {
+  background-image: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.06) 0%,
+    rgba(255, 255, 255, 0.015) 36%,
+    rgba(0, 0, 0, 0.07) 100%
+  );
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.08),
+    0 2px 4px -2px rgba(0, 0, 0, 0.4),
+    0 22px 48px -30px rgba(0, 0, 0, 0.9);
+}
+/* Same, but the card carries a stack identity: the top of the sheen picks up a
+   faint tint of the stack's accent and the drop shadow gains a low-spread glow
+   in that accent, so the card "catches light" in its own color. Set the accent
+   with `style={{ '--card-accent': '#hex' }}`. */
+.lux-accent {
+  background-image: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--card-accent) 9%, rgba(255, 255, 255, 0.05)) 0%,
+    rgba(255, 255, 255, 0.012) 38%,
+    rgba(0, 0, 0, 0.08) 100%
+  );
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.09),
+    0 2px 4px -2px rgba(0, 0, 0, 0.4),
+    0 22px 48px -30px rgba(0, 0, 0, 0.9),
+    0 0 34px -18px var(--card-accent);
 }
 
 /* ── Signature: live equalizer on the playing clip ── */

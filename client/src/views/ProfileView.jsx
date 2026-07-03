@@ -5,7 +5,10 @@ import { copyChallengeLink, shareOrCopy } from '../lib/share';
 
 function StatTile({ value, label, accent, suffix = '', fire = false }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-grape/40 p-4 text-center sm:p-5">
+    <div
+      className="lux-accent rounded-2xl border border-white/10 bg-grape/40 p-4 text-center sm:p-5"
+      style={{ '--card-accent': accent }}
+    >
       <div className="font-display text-4xl font-extrabold leading-none sm:text-5xl" style={{ color: accent }}>
         <CountUp value={value} suffix={suffix} />
         {fire && <span className="ml-1 text-3xl sm:text-4xl">🔥</span>}

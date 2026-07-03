@@ -46,7 +46,12 @@ function ScenarioPrompt({ scenarioId }) {
   return (
     <div className="rise pt-1">
       <p className="font-body text-xs font-bold uppercase tracking-[0.2em] text-cyan">Round · {s.round}</p>
-      <h1 className="mt-1.5 font-display text-[1.7rem] font-extrabold leading-[1.1] text-cream">{s.prompt}</h1>
+      <h1
+        className="mt-2 font-display text-[1.8rem] font-extrabold leading-[1.08] text-cream"
+        style={{ letterSpacing: '-0.02em' }}
+      >
+        {s.prompt}
+      </h1>
     </div>
   );
 }
@@ -57,15 +62,15 @@ function VoteButton({ side, accent, armed, loading, onClick }) {
   // with a colored glow. The gap between the two states should read at a glance.
   const armedStyle = {
     background: accent,
-    color: '#190a2e',
+    color: '#0b0b12',
     boxShadow: `0 12px 28px -10px ${accent}, inset 0 1px 0 rgba(255,255,255,0.35)`,
     border: '1px solid transparent',
   };
   const lockedStyle = {
     background: 'rgba(255,255,255,0.035)',
-    color: 'rgba(185,168,224,0.4)', // dimmed mist
+    color: 'rgba(148,153,168,0.45)', // dimmed cool-neutral mist
     boxShadow: 'none',
-    border: '1px solid rgba(255,255,255,0.05)',
+    border: '1px solid rgba(255,255,255,0.06)',
   };
   return (
     <button
@@ -96,39 +101,57 @@ function VoteButton({ side, accent, armed, loading, onClick }) {
 
 function HeroCopy() {
   const steps = [
-    { icon: '▶', text: 'Hear two callers handle the same moment', color: 'var(--color-magenta)' },
-    { icon: '👂', text: 'Call which one sounds human', color: 'var(--color-cyan)' },
-    { icon: '📈', text: 'Your vote ranks the whole stack', color: 'var(--color-lime)' },
+    { n: '01', text: 'Hear two callers handle the same moment', color: 'var(--color-magenta)' },
+    { n: '02', text: 'Call which one sounds human', color: 'var(--color-cyan)' },
+    { n: '03', text: 'Your vote ranks the whole stack', color: 'var(--color-lime)' },
   ];
   return (
     <div className="hidden lg:flex lg:flex-col lg:pr-4">
-      <p className="font-body text-xs font-bold uppercase tracking-[0.28em] text-cyan">
+      <p className="font-body text-[11px] font-bold uppercase tracking-[0.32em] text-mist">
         The voice-AI turing arena
       </p>
-      <h1 className="mt-4 font-display text-6xl font-extrabold leading-[0.98] tracking-tight text-cream">
+      {/* Sized with clamp() rather than a fixed rem so each line fits the hero
+          column at every desktop width (it narrows to ~384px at the lg break):
+          the two explicit lines stay "Which voice AI" / "sounds human?" without
+          re-wrapping or stranding "AI" on its own. */}
+      <h1
+        className="mt-5 font-display text-[clamp(3.1rem,5vw,4.5rem)] font-extrabold leading-[0.95] text-cream"
+        style={{ letterSpacing: '-0.035em' }}
+      >
         Which voice AI
         <br />
         sounds{' '}
-        <span className="bg-gradient-to-r from-magenta to-cyan bg-clip-text text-transparent">human?</span>
+        <span className="text-lime">human?</span>
       </h1>
-      <p className="mt-5 max-w-md text-lg leading-relaxed text-mist">
+      <p className="mt-6 max-w-md text-[17px] leading-relaxed text-mist">
         Judge the whole stack — voice, brains, and how it handles a real conversation. Play a clip from each
         caller, then trust your ears.
       </p>
-      <ul className="mt-8 space-y-3">
+
+      <ol className="mt-10 space-y-5">
         {steps.map((s) => (
-          <li key={s.text} className="flex items-center gap-3">
+          <li key={s.text} className="flex items-center gap-4">
             <span
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-sm"
-              style={{ background: 'rgba(255,255,255,0.06)', color: s.color }}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl font-display text-xs font-extrabold tabular-nums glass"
+              style={{ color: s.color }}
               aria-hidden
             >
-              {s.icon}
+              {s.n}
             </span>
-            <span className="font-body text-[15px] text-cream/90">{s.text}</span>
+            <span className="font-body text-base text-cream/85">{s.text}</span>
           </li>
         ))}
-      </ul>
+      </ol>
+
+      {/* Real credibility line — grounds the column so it doesn't float, and
+          states the setup honestly (no invented vote counts). */}
+      <p className="mt-12 font-body text-sm text-mist">
+        <span className="font-bold text-cream/80">6 full stacks</span>
+        <span className="mx-2 text-mist/50">·</span>
+        <span className="font-bold text-cream/80">1 human baseline</span>
+        <span className="mx-2 text-mist/50">·</span>
+        <span className="font-bold text-cream/80">live Elo ranking</span>
+      </p>
     </div>
   );
 }
@@ -321,7 +344,7 @@ export default function PlayView({ voterId, stats, setStats, onNavigate }) {
   return (
     <div className="flex flex-1 flex-col lg:grid lg:grid-cols-[1.05fr_minmax(0,520px)] lg:items-center lg:gap-14 lg:py-8">
       <HeroCopy />
-      <section className="flex flex-1 flex-col lg:flex-none lg:rounded-[2rem] lg:border lg:border-white/10 lg:bg-grape/40 lg:p-7 lg:shadow-[0_40px_90px_-40px_rgba(0,0,0,0.85)] lg:backdrop-blur">
+      <section className="flex flex-1 flex-col lg:flex-none lg:rounded-[2rem] lg:border lg:border-white/10 lg:bg-grape/40 lg:p-7 lg:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.07),0_40px_90px_-40px_rgba(0,0,0,0.85)] lg:backdrop-blur">
         {panel}
       </section>
     </div>

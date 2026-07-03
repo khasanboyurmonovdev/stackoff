@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { fetchLeaderboard } from '../lib/api';
 import CountUp from '../components/CountUp';
+import StackMark from '../components/StackMark';
+import { stackTheme } from '../lib/stacks';
 
 // At/above this uncertainty a row has too little data to trust its point score,
 // so we mute the big number and let the ± band dominate.
@@ -27,7 +29,7 @@ function PriceTier({ tier }) {
   );
 }
 
-function ConfigChips({ stt, llm, tts }) {
+function ConfigChips({ stt, llm, tts, accent = 'var(--color-mist)' }) {
   const items = [
     ['STT', stt],
     ['LLM', llm],
@@ -36,8 +38,15 @@ function ConfigChips({ stt, llm, tts }) {
   return (
     <div className="flex flex-wrap gap-1.5">
       {items.map(([label, value]) => (
-        <span key={label} className="inline-flex items-center gap-1 rounded-lg bg-white/8 px-2 py-1 text-xs">
-          <span className="text-mist">{label}</span>
+        <span
+          key={label}
+          className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs"
+          style={{
+            background: `color-mix(in srgb, ${accent} 9%, transparent)`,
+            border: `1px solid color-mix(in srgb, ${accent} 26%, transparent)`,
+          }}
+        >
+          <span style={{ color: accent }} className="font-bold">{label}</span>
           <span className="font-medium text-cream">{value}</span>
         </span>
       ))}
@@ -95,15 +104,18 @@ function Podium({ row }) {
               Most human
             </span>
           </div>
-          <h2 className="mt-3 font-display text-4xl font-extrabold tracking-tight text-cream lg:text-5xl">
-            {row.name}
-          </h2>
+          <div className="mt-3 flex items-center gap-3">
+            <StackMark stackId={row.id} size="lg" />
+            <h2 className="font-display text-4xl font-extrabold tracking-tight text-cream lg:text-5xl">
+              {row.name}
+            </h2>
+          </div>
           <div className="mt-3 flex items-center gap-2">
             <PriceTier tier={row.priceTier} />
             <span className="font-body text-sm text-mist">{row.votes} votes</span>
           </div>
           <div className="mt-4 lg:max-w-md">
-            <ConfigChips stt={row.stt} llm={row.llm} tts={row.tts} />
+            <ConfigChips stt={row.stt} llm={row.llm} tts={row.tts} accent={stackTheme(row.id).accent} />
           </div>
         </div>
 
@@ -129,10 +141,14 @@ function Podium({ row }) {
 function RankCard({ row, rank }) {
   const unsettled = row.uncertainty >= UNCERTAIN;
   return (
-    <div className="lift rounded-2xl border border-white/10 bg-grape/40 p-4">
+    <div
+      className="lift lux-accent rounded-2xl border border-white/10 bg-grape/40 p-4"
+      style={{ '--card-accent': stackTheme(row.id).accent }}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
           <span className="font-display text-xl font-extrabold tabular-nums text-mist">{rank}</span>
+          <StackMark stackId={row.id} size="sm" />
           <div>
             <p className="font-display text-lg font-bold text-cream">{row.name}</p>
             <p className="font-body text-xs text-mist">
@@ -149,7 +165,7 @@ function RankCard({ row, rank }) {
       </div>
       <Bar value={row.humanness} className="mt-3" />
       <div className="mt-3">
-        <ConfigChips stt={row.stt} llm={row.llm} tts={row.tts} />
+        <ConfigChips stt={row.stt} llm={row.llm} tts={row.tts} accent={stackTheme(row.id).accent} />
       </div>
     </div>
   );
@@ -159,12 +175,18 @@ function RankCard({ row, rank }) {
 function TableRow({ row, rank }) {
   const unsettled = row.uncertainty >= UNCERTAIN;
   return (
-    <div className="lift grid grid-cols-[2.5rem_1fr_minmax(13rem,1fr)_4rem_4.5rem] items-center gap-4 rounded-2xl border border-white/8 bg-grape/30 px-5 py-4 hover:border-white/15 hover:bg-grape/50">
+    <div
+      className="lift lux-accent grid grid-cols-[2.5rem_1fr_minmax(13rem,1fr)_4rem_4.5rem] items-center gap-4 rounded-2xl border border-white/8 bg-grape/30 px-5 py-4 hover:border-white/15 hover:bg-grape/50"
+      style={{ '--card-accent': stackTheme(row.id).accent }}
+    >
       <span className="font-display text-2xl font-extrabold tabular-nums text-mist">{rank}</span>
-      <div className="min-w-0">
-        <p className="font-display text-xl font-bold text-cream">{row.name}</p>
-        <div className="mt-2">
-          <ConfigChips stt={row.stt} llm={row.llm} tts={row.tts} />
+      <div className="flex min-w-0 items-center gap-3">
+        <StackMark stackId={row.id} size="sm" />
+        <div className="min-w-0">
+          <p className="font-display text-xl font-bold text-cream">{row.name}</p>
+          <div className="mt-2">
+            <ConfigChips stt={row.stt} llm={row.llm} tts={row.tts} accent={stackTheme(row.id).accent} />
+          </div>
         </div>
       </div>
       <div>

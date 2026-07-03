@@ -45,3 +45,22 @@ export const STACK_INFO = {
     blurb: 'Warm and very patient — never steps on you, but the long wait can read as a lag.',
   },
 };
+
+// Per-stack visual identity. Each of the six stacks owns an accent and a clean
+// monogram mark so it reads as a distinct competitor (instead of a generic
+// robot) wherever its identity is *known* — the reveal and the leaderboard. The
+// blind play cards stay deliberately anonymous (A = magenta, B = cyan) so the
+// game isn't given away. Accent is used sparingly: the mark and the STT/LLM/TTS
+// chips pick it up; everything else stays on the cool neutral scale.
+export const STACK_THEME = {
+  velvet: { accent: '#e84a97', mark: 'V' }, // deep magenta
+  studio: { accent: '#22d3d6', mark: 'S' }, // cyan
+  cosmo: { accent: '#8b7cf6', mark: 'C' }, // violet
+  sage: { accent: '#2dd4a8', mark: 'S' }, // teal-green
+  sprint: { accent: '#f5a623', mark: 'S' }, // amber — the villain
+  thrift: { accent: '#8a8d9c', mark: 'T' }, // muted grey
+};
+
+export function stackTheme(stackId) {
+  return STACK_THEME[stackId] || { accent: 'var(--color-mist)', mark: '?' };
+}

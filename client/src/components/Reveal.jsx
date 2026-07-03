@@ -1,6 +1,7 @@
-import { STACK_INFO } from '../lib/stacks';
+import { STACK_INFO, stackTheme } from '../lib/stacks';
 import { reduceMotion } from '../lib/motion';
 import CountUp from './CountUp';
+import StackMark from './StackMark';
 
 const ACCENT = { A: 'var(--color-magenta)', B: 'var(--color-cyan)' };
 
@@ -25,25 +26,40 @@ function Confetti() {
   );
 }
 
-function Chip({ label, value }) {
+function Chip({ label, value, accent }) {
   return (
-    <span className="inline-flex items-center gap-1 rounded-lg bg-white/8 px-2 py-1 text-xs">
-      <span className="text-mist">{label}</span>
+    <span
+      className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs"
+      style={{
+        background: `color-mix(in srgb, ${accent} 9%, transparent)`,
+        border: `1px solid color-mix(in srgb, ${accent} 26%, transparent)`,
+      }}
+    >
+      <span style={{ color: accent }} className="font-bold">{label}</span>
       <span className="font-medium text-cream">{value}</span>
     </span>
   );
 }
 
-// Shows what one side actually was: a real human, or a stack with its config.
+// Shows what one side actually was: a real human, or a stack with its own
+// identity (monogram mark + accent-tinted config chips), not a generic robot.
+// The A/B side accent stays on the card border as the duel's punctuation.
 function ResultCard({ side, clip, picked }) {
   const accent = ACCENT[side];
   const human = clip.sourceType === 'human';
   const info = human ? null : STACK_INFO[clip.stackId] || { name: clip.name };
+  const stackAccent = human ? null : stackTheme(clip.stackId).accent;
+  // The card glows in its own identity: a stack in its accent, the human in lime.
+  const glow = human ? '#c6ff4a' : stackAccent;
 
   return (
     <div
       className="rise relative rounded-2xl border-2 bg-grape/50 p-3.5"
-      style={{ borderColor: picked ? accent : 'rgba(255,255,255,0.10)' }}
+      style={{
+        borderColor: picked ? accent : 'rgba(255,255,255,0.10)',
+        backgroundImage: `linear-gradient(180deg, color-mix(in srgb, ${glow} 8%, rgba(255,255,255,0.05)) 0%, rgba(255,255,255,0.012) 38%, rgba(0,0,0,0.08) 100%)`,
+        boxShadow: `inset 0 1px 0 0 rgba(255,255,255,0.09), 0 2px 4px -2px rgba(0,0,0,0.4), 0 22px 48px -30px rgba(0,0,0,0.9), 0 0 30px -18px ${glow}`,
+      }}
     >
       <div className="mb-1.5 flex items-center gap-2">
         <span className="font-display text-2xl font-extrabold leading-none" style={{ color: accent }}>
@@ -63,12 +79,15 @@ function ResultCard({ side, clip, picked }) {
         </div>
       ) : (
         <div>
-          <p className="font-display text-xl font-bold text-cream">🤖 {info.name}</p>
+          <div className="flex items-center gap-2.5">
+            <StackMark stackId={clip.stackId} size="sm" />
+            <p className="font-display text-xl font-bold text-cream">{info.name}</p>
+          </div>
           {info.stt && (
-            <div className="mt-1.5 flex flex-wrap gap-1.5">
-              <Chip label="STT" value={info.stt} />
-              <Chip label="LLM" value={info.llm} />
-              <Chip label="TTS" value={info.tts} />
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              <Chip label="STT" value={info.stt} accent={stackAccent} />
+              <Chip label="LLM" value={info.llm} accent={stackAccent} />
+              <Chip label="TTS" value={info.tts} accent={stackAccent} />
             </div>
           )}
           {info.blurb && <p className="mt-2 text-sm leading-snug text-mist">{info.blurb}</p>}
@@ -127,14 +146,14 @@ export default function Reveal({ reveal, stats, onNext, onViewStats }) {
 
         {golden && (
           <div className="mt-3 grid shrink-0 grid-cols-2 gap-3 lg:mt-5">
-            <div className="rounded-2xl bg-white/8 p-2.5 text-center lg:p-3">
+            <div className="lux-accent rounded-2xl bg-white/8 p-2.5 text-center lg:p-3" style={{ '--card-accent': '#ffc53d' }}>
               <div className="font-display text-3xl font-extrabold text-amber">
                 <CountUp value={reveal.currentStreak ?? stats?.currentStreak ?? 0} />
                 <span className="ml-1 text-2xl">🔥</span>
               </div>
               <p className="mt-0.5 text-xs uppercase tracking-wide text-mist">streak</p>
             </div>
-            <div className="rounded-2xl bg-white/8 p-2.5 text-center lg:p-3">
+            <div className="lux-accent rounded-2xl bg-white/8 p-2.5 text-center lg:p-3" style={{ '--card-accent': '#c6ff4a' }}>
               <div className="font-display text-3xl font-extrabold text-lime">
                 <CountUp value={Math.round((reveal.accuracy ?? stats?.accuracy ?? 0) * 100)} suffix="%" />
               </div>

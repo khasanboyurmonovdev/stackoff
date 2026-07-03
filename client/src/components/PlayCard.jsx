@@ -37,7 +37,14 @@ export default function PlayCard({ side, accent, playing, progress, played, dura
       className="press relative w-full overflow-hidden rounded-3xl border-2 bg-grape/55 p-4 text-left backdrop-blur"
       style={{
         borderColor: playing ? accent : 'rgba(255,255,255,0.10)',
-        boxShadow: playing ? `0 0 36px -8px ${accent}` : 'none',
+        // A top-light sheen over the grape fill gives the card depth at rest;
+        // the drop shadow lifts it off the canvas. Resting carries a faint glow
+        // in its side accent; playing ramps that glow up to full.
+        backgroundImage:
+          'linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.015) 36%, rgba(0,0,0,0.08) 100%)',
+        boxShadow: playing
+          ? `0 0 36px -8px ${accent}, 0 22px 48px -30px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,255,255,0.10)`
+          : `inset 0 1px 0 rgba(255,255,255,0.08), 0 2px 4px -2px rgba(0,0,0,0.4), 0 22px 48px -30px rgba(0,0,0,0.9), 0 0 26px -18px ${accent}`,
       }}
     >
       <div className="flex items-center gap-3.5">
