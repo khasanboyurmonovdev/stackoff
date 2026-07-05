@@ -6,14 +6,14 @@ export const STACK_INFO = {
     name: 'Velvet',
     stt: 'Deepgram Nova-2',
     llm: 'GPT-4o',
-    tts: 'ElevenLabs v3',
+    tts: 'Cartesia Sonic-3',
     blurb: 'Premium and unhurried. Beautiful voice, waits its turn, yields the instant you cut in.',
   },
   sprint: {
     name: 'Sprint',
     stt: 'Deepgram Nova-2',
     llm: 'Llama-3.3-70B (Groq)',
-    tts: 'ElevenLabs Flash v2',
+    tts: 'Cartesia Sonic-3',
     blurb: 'Blazing fast with a great voice — but jumps in early and talks over you. The cautionary tale.',
   },
   studio: {
