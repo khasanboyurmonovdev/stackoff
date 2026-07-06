@@ -1,7 +1,7 @@
 // Sharing the "golden ears" result. navigator.share is used where available
 // (phones), with a clipboard copy as the desktop fallback. The shared link is a
-// server-minted /s/:token unfurl (so chats render a rich card), falling back to
-// the bare site root if minting is unavailable so a friend still lands in the game.
+// server-minted /s/<id> short unfurl (so chats render a rich card), falling back
+// to the bare site root if minting is unavailable so a friend still lands in the game.
 import { getVoterId, fetchShareUrl } from './api';
 
 export function buildShareText({ accuracy, bestStreak }) {
@@ -41,7 +41,7 @@ async function copyText(text) {
   }
 }
 
-// The shareable challenge URL: a server-minted /s/:token unfurl carrying the
+// The shareable challenge URL: a server-minted /s/<id> short unfurl carrying the
 // player's stats. Falls back to the bare site root if minting is unavailable, so
 // sharing never hard-fails.
 async function challengeUrl() {

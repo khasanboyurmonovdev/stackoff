@@ -4,7 +4,8 @@ import { Stack } from '../models/Stack.js';
 import { Voter } from '../models/Voter.js';
 import { humannessFromRating, uncertaintyBand } from '../lib/elo.js';
 import { Baseline } from '../models/Baseline.js';
-import { signShare } from '../services/battleToken.js';
+import { Share } from '../models/Share.js';
+import { nanoid } from 'nanoid';
 
 const router = express.Router();
 
@@ -100,15 +101,20 @@ router.get('/voter/:voterId', async (req, res, next) => {
   }
 });
 
-// GET /api/voter/:voterId/share — mint a signed share link from the voter's
+// GET /api/voter/:voterId/share — mint a short share link from the voter's
 // AUTHORITATIVE stats (read from the DB, never client-supplied), so nobody can
-// sign a fake brag card. The stats are baked into the token, so the /s unfurl
-// route needs no further lookup. Unseen voter -> zeros (a valid, humble card).
+// forge a fake brag card. The stats are snapshotted into a Share row keyed by an
+// 8-char nanoid, so the /s unfurl route resolves the card from that id alone.
+// Unseen voter -> zeros (a valid, humble card). This is user-action-only on the
+// client (Share / Copy-link buttons), so each call is a deliberate mint, not a
+// per-render write; expired rows are reaped by the Share TTL index.
 router.get('/voter/:voterId/share', async (req, res, next) => {
   try {
     const v = await Voter.findById(req.params.voterId).lean();
     const accuracy = v && v.goldenAttempts ? v.goldenCorrect / v.goldenAttempts : 0;
-    const token = signShare({
+    const id = nanoid(8);
+    await Share.create({
+      _id: id,
       accuracy,
       bestStreak: v ? v.bestStreak : 0,
       votes: v ? v.votes : 0,
@@ -116,7 +122,7 @@ router.get('/voter/:voterId/share', async (req, res, next) => {
     // PUBLIC_SHARE_BASE lets prod/dev pin the public origin of /s; otherwise use
     // the request's own origin (the server that owns /s).
     const base = process.env.PUBLIC_SHARE_BASE || `${req.protocol}://${req.get('host')}`;
-    res.json({ token, url: `${base}/s/${token}` });
+    res.json({ id, url: `${base}/s/${id}` });
   } catch (e) {
     next(e);
   }

@@ -1,6 +1,7 @@
 import express from 'express';
 import { verifyShare } from '../services/battleToken.js';
 import { renderShareCardPng } from '../lib/shareCard.js';
+import { Share } from '../models/Share.js';
 
 // Server-rendered share unfurl. Mounted in index.js BEFORE helmet and BEFORE the
 // rate limiter (see the mount comment there) so social crawlers reach the HTML
@@ -34,16 +35,31 @@ function meta(payload) {
   };
 }
 
-// GET /s/:token — minimal HTML with OG/Twitter tags + a redirect for humans.
-// Invalid/expired tokens still render valid tags (generic), never an error.
-router.get('/:token', (req, res) => {
-  const { token } = req.params;
-  let payload = null;
-  try {
-    payload = verifyShare(token);
-  } catch {
-    payload = null; // generic unfurl, not an error
+// Resolve a /s/:id slug to a card payload, or null (which renders a generic,
+// non-error unfurl). Two shapes are accepted:
+//   - 8-char nanoid  -> look up the Share row minted by /api/voter/:id/share
+//   - legacy JWT      -> verifyShare(), keeping links shared before short-ids alive
+// The '.' test is the discriminator: a signed token is `body.sig`, while nanoid's
+// URL-safe alphabet (A-Za-z0-9_-) never contains a dot, so the two can't collide.
+// A missing/expired id or an invalid/expired token both degrade to null.
+async function resolvePayload(idOrToken) {
+  if (idOrToken.includes('.')) {
+    try {
+      return verifyShare(idOrToken);
+    } catch {
+      return null;
+    }
   }
+  const row = await Share.findById(idOrToken).lean();
+  if (!row) return null;
+  return { accuracy: row.accuracy, bestStreak: row.bestStreak, votes: row.votes };
+}
+
+// GET /s/:token — minimal HTML with OG/Twitter tags + a redirect for humans.
+// Invalid/expired ids still render valid tags (generic), never an error.
+router.get('/:token', async (req, res) => {
+  const { token } = req.params;
+  const payload = await resolvePayload(token);
 
   const { title, description } = meta(payload);
   const base = `${req.protocol}://${req.get('host')}`;
@@ -79,19 +95,14 @@ router.get('/:token', (req, res) => {
   res.send(html);
 });
 
-// GET /s/:token/card.png — the personalized 1200x630 card. Invalid token -> a
+// GET /s/:token/card.png — the personalized 1200x630 card. Invalid id -> a
 // generic Stackoff card (the renderer handles a null payload).
 router.get('/:token/card.png', async (req, res, next) => {
   try {
-    let payload = null;
-    try {
-      payload = verifyShare(req.params.token);
-    } catch {
-      payload = null;
-    }
+    const payload = await resolvePayload(req.params.token);
     const png = await renderShareCardPng(payload);
     res.set('Content-Type', 'image/png');
-    // Token deterministically maps to a card; safe to cache for a day at the edge.
+    // Id deterministically maps to a card; safe to cache for a day at the edge.
     res.set('Cache-Control', 'public, max-age=86400, immutable');
     res.send(png);
   } catch (e) {

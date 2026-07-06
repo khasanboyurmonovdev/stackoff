@@ -83,9 +83,10 @@ export async function fetchVoter(id) {
   }
 }
 
-// Mint a server-signed share link for this voter. Returns { token, url }, where
-// url is the absolute /s/:token unfurl. The server reads the voter's real stats —
-// the client only supplies the id.
+// Mint a short share link for this voter. Returns { id, url }, where url is the
+// absolute /s/<id> unfurl (an 8-char slug, short enough for crawlers like Telegram
+// to render). The server reads the voter's real stats — the client only supplies
+// the voter id.
 export async function fetchShareUrl(voterId) {
   const r = await fetch(`/api/voter/${voterId}/share`);
   if (!r.ok) throw new Error(`share ${r.status}`);
