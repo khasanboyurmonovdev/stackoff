@@ -10,6 +10,10 @@ import arenaRouter from './routes/arena.js';
 import shareRouter from './routes/share.js';
 
 const app = express();
+// Deployed behind Nginx (TLS termination). Trust the first proxy hop so
+// req.protocol honors X-Forwarded-Proto (share-card URLs) and express-rate-limit
+// keys on the real client IP via X-Forwarded-For instead of the proxy's.
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 4000;
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
