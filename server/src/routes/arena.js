@@ -9,6 +9,42 @@ import { nanoid } from 'nanoid';
 
 const router = express.Router();
 
+const TURNSTILE_VERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
+
+// Verify a Cloudflare Turnstile token against siteverify. Returns true to let the
+// vote through, false to reject with 403.
+// - TURNSTILE_SECRET unset/empty -> skip entirely (local dev parity with the
+//   client, which also sends no token when its site key is unset).
+// - Secret set -> the token MUST verify. FAIL CLOSED: a missing token, a
+//   success:false response, or a network/timeout error all return false.
+async function verifyTurnstile(token, ip) {
+  const secret = process.env.TURNSTILE_SECRET;
+  if (!secret) return true;
+
+  // Short timeout so a hung Cloudflare can't hang the vote.
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 5000);
+  try {
+    const params = new URLSearchParams();
+    params.set('secret', secret);
+    params.set('response', typeof token === 'string' ? token : '');
+    if (ip) params.set('remoteip', ip);
+
+    const r = await fetch(TURNSTILE_VERIFY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params,
+      signal: controller.signal,
+    });
+    const data = await r.json();
+    return data?.success === true;
+  } catch {
+    return false; // network/timeout while a secret is configured -> fail closed
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 // GET /api/battle — a fresh signed battle, or 503 until clips exist.
 router.get('/battle', async (req, res, next) => {
   try {
@@ -25,7 +61,7 @@ router.get('/battle', async (req, res, next) => {
 
 // POST /api/vote — body { token, winnerClipId, voterId }.
 router.post('/vote', async (req, res, next) => {
-  const { token, winnerClipId, voterId } = req.body ?? {};
+  const { token, winnerClipId, voterId, turnstileToken } = req.body ?? {};
   if (
     typeof token !== 'string' ||
     typeof winnerClipId !== 'string' ||
@@ -35,6 +71,12 @@ router.post('/vote', async (req, res, next) => {
     !voterId
   ) {
     return res.status(400).json({ error: 'token, winnerClipId and voterId are required' });
+  }
+
+  // Bot gate on the vote endpoint only. req.ip is the real client IP (trust proxy
+  // is set to 1, so X-Forwarded-For from Nginx is honored).
+  if (!(await verifyTurnstile(turnstileToken, req.ip))) {
+    return res.status(403).json({ error: 'turnstile verification failed' });
   }
 
   try {

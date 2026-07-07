@@ -3,6 +3,7 @@ import PlayCard from '../components/PlayCard';
 import Reveal from '../components/Reveal';
 import useAudio from '../lib/useAudio';
 import { clipPath, fetchBattle, postVote } from '../lib/api';
+import { getVoteToken } from '../lib/turnstile';
 import { FALLBACK_PROMPT, SCENARIO_PROMPTS } from '../lib/scenarios';
 
 const ACCENT_A = '#ff3d8b';
@@ -213,7 +214,11 @@ export default function PlayView({ voterId, stats, setStats, onNavigate }) {
     B.stop();
     setSubmitting(side);
     try {
-      const rev = await postVote({ token: battle.token, winnerClipId, voterId });
+      // Mint a fresh, single-use Turnstile token for this vote (undefined when
+      // Turnstile is disabled). A mint failure throws into the catch below, which
+      // surfaces the soft-retry error screen instead of a silently dead button.
+      const turnstileToken = await getVoteToken();
+      const rev = await postVote({ token: battle.token, winnerClipId, voterId, turnstileToken });
       setReveal({ ...rev, pickedSide: side });
       setStats((s) => {
         const base = s || { votes: 0, accuracy: 0, currentStreak: 0, bestStreak: 0 };
