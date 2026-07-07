@@ -155,7 +155,7 @@ export default function Reveal({ reveal, stats, onNext, onViewStats }) {
   // bar, never behind it; dropped at md+ where the tab bar is hidden.
   return (
     <div className="fixed inset-0 z-40 bg-void-deep lg:flex lg:items-center lg:justify-center lg:overflow-y-auto lg:p-6">
-      <div className="sheet mx-auto flex h-full w-full max-w-[440px] flex-col px-5 pb-[calc(env(safe-area-inset-bottom)+5.5rem)] pt-[max(1rem,env(safe-area-inset-top))] md:pb-7 lg:h-auto lg:max-h-[92vh] lg:overflow-y-auto lg:rounded-[2rem] lg:border lg:border-white/10 lg:bg-void/80 lg:px-7 lg:pb-7 lg:pt-7 lg:shadow-[0_40px_120px_-30px_rgba(0,0,0,0.9)]">
+      <div className="sheet mx-auto flex h-full w-full max-w-[440px] flex-col overflow-y-auto px-5 pb-[calc(env(safe-area-inset-bottom)+5.5rem)] pt-[max(1rem,env(safe-area-inset-top))] md:pb-7 lg:h-auto lg:max-h-[92vh] lg:overflow-y-auto lg:rounded-[2rem] lg:border lg:border-white/10 lg:bg-void/80 lg:px-7 lg:pb-7 lg:pt-7 lg:shadow-[0_40px_120px_-30px_rgba(0,0,0,0.9)]">
         <div className="relative shrink-0 pt-2 text-center">
           {golden && reveal.correct && <Confetti />}
           <div className="pop text-5xl lg:text-6xl" aria-hidden>
@@ -196,9 +196,9 @@ export default function Reveal({ reveal, stats, onNext, onViewStats }) {
           </div>
         )}
 
-        <div className="mt-4 flex min-h-0 flex-1 flex-col lg:mt-6 lg:flex-none">
+        <div className="mt-4 flex flex-col lg:mt-6 lg:flex-none">
           <p className="shrink-0 text-center font-body text-xs font-bold uppercase tracking-[0.2em] text-mist">The reveal</p>
-          <div className="mt-2 flex-1 space-y-2.5 overflow-y-auto lg:flex-none lg:overflow-visible">
+          <div className="mt-2 space-y-2.5 overflow-y-auto lg:flex-none lg:overflow-visible">
             <ResultCard side="A" clip={clipA} picked={pickedSide === 'A'} />
             <ResultCard side="B" clip={clipB} picked={pickedSide === 'B'} />
           </div>
