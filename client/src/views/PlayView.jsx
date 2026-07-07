@@ -247,9 +247,17 @@ export default function PlayView({ voterId, stats, setStats, onNavigate }) {
 
   // The vote machine — identical markup on phone and desktop, only its container
   // changes (bare column on mobile, featured panel on desktop).
+  const listenFor = battle ? SCENARIO_PROMPTS[battle.scenarioId]?.listenFor : null;
+
   const machine = battle && (
     <>
       <ScenarioPrompt scenarioId={battle.scenarioId} />
+      {listenFor && (
+        <p className="mt-3 text-center text-xs leading-snug text-cream/50 italic max-w-sm mx-auto">
+          <span className="font-semibold text-cream/70 not-italic tracking-wide uppercase text-[10px]">Listen for  </span>
+          {listenFor}
+        </p>
+      )}
 
       <div className="mt-5 space-y-2.5">
         <PlayCard

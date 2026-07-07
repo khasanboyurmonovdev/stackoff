@@ -9,6 +9,7 @@ const stackSchema = new mongoose.Schema(
     llm: { type: String, required: true },
     tts: { type: String, required: true },
     turnTaking: { type: mongoose.Schema.Types.Mixed, required: true },
+    behaviorTags: { type: [String], required: true },
     voice: { type: String, required: true }, // Piper model id; arena never pairs same-voice stacks
     priceTier: { type: String, required: true },
     blurb: { type: String, required: true },

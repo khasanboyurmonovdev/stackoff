@@ -1,4 +1,5 @@
 import { STACK_INFO, stackTheme } from '../lib/stacks';
+import { SCENARIO_PROMPTS } from '../lib/scenarios';
 import { reduceMotion } from '../lib/motion';
 import CountUp from './CountUp';
 import StackMark from './StackMark';
@@ -37,6 +38,20 @@ function Chip({ label, value, accent }) {
     >
       <span style={{ color: accent }} className="font-bold">{label}</span>
       <span className="font-medium text-cream">{value}</span>
+    </span>
+  );
+}
+
+function BehaviorTag({ tag, accent }) {
+  return (
+    <span
+      className="inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-medium text-cream/70"
+      style={{
+        background: `color-mix(in srgb, ${accent} 5%, transparent)`,
+        border: `1px dashed color-mix(in srgb, ${accent} 18%, transparent)`,
+      }}
+    >
+      {tag}
     </span>
   );
 }
@@ -91,6 +106,13 @@ function ResultCard({ side, clip, picked }) {
             </div>
           )}
           {info.blurb && <p className="mt-2 text-sm leading-snug text-mist">{info.blurb}</p>}
+          {clip.behaviorTags?.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {clip.behaviorTags.map((tag) => (
+                <BehaviorTag key={tag} tag={tag} accent={stackAccent} />
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -103,6 +125,7 @@ function ResultCard({ side, clip, picked }) {
 export default function Reveal({ reveal, stats, onNext, onViewStats }) {
   const { kind, clipA, clipB, pickedSide } = reveal;
   const golden = kind === 'golden';
+  const scenario = SCENARIO_PROMPTS[reveal.scenarioId];
 
   let banner;
   if (golden) {
@@ -159,6 +182,17 @@ export default function Reveal({ reveal, stats, onNext, onViewStats }) {
               </div>
               <p className="mt-0.5 text-xs uppercase tracking-wide text-mist">accuracy</p>
             </div>
+          </div>
+        )}
+
+        {scenario && (
+          <div className="mb-5 text-center">
+            <span className="inline-block rounded-full bg-white/[0.06] px-3 py-1 text-[10px] font-mono font-medium uppercase tracking-widest text-cream/40 mb-2">
+              {scenario.tests}
+            </span>
+            <p className="text-sm leading-snug text-cream/60 italic max-w-xs mx-auto">
+              {scenario.listenFor}
+            </p>
           </div>
         )}
 

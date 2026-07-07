@@ -119,6 +119,7 @@ async function describeClip(clip) {
     sourceType: 'stack',
     stackId: clip.sourceId,
     name: stack ? stack.name : clip.sourceId,
+    behaviorTags: stack ? stack.behaviorTags : [],
   };
 }
 
@@ -216,6 +217,7 @@ export async function applyVote({ token, winnerClipId, voterId }) {
   // Reveal what each clip actually was.
   const reveal = {
     kind,
+    scenarioId,
     winnerClipId,
     clipA: await describeClip(clipA),
     clipB: await describeClip(clipB),
