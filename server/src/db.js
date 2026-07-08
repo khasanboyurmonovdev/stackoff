@@ -12,7 +12,7 @@ export async function connectDb() {
   }
 
   try {
-    await mongoose.connect(uri);
+    await mongoose.connect(uri, { autoIndex: false });
     console.log('[db] Connected to MongoDB');
     return mongoose.connection;
   } catch (err) {

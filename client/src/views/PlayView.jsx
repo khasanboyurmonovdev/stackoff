@@ -140,7 +140,7 @@ function dailyBattleToBattle(b) {
 
 // --- Desktop-only hero copy that frames the game beside the featured panel -----
 
-function HeroCopy() {
+function HeroCopy({ totalVotes, stackCount, topScore }) {
   const steps = [
     { n: '01', text: 'Hear two callers handle the same moment', color: 'var(--color-magenta)' },
     { n: '02', text: 'Call which one sounds human', color: 'var(--color-cyan)' },
@@ -184,6 +184,25 @@ function HeroCopy() {
         ))}
       </ol>
 
+      {totalVotes > 0 && (
+        <div className="mt-8 flex gap-6">
+          <div>
+            <p className="font-display text-3xl font-extrabold text-cream">{totalVotes.toLocaleString()}</p>
+            <p className="mt-0.5 font-body text-xs text-mist/50">blind votes</p>
+          </div>
+          <div>
+            <p className="font-display text-3xl font-extrabold text-cream">{stackCount}</p>
+            <p className="mt-0.5 font-body text-xs text-mist/50">full stacks</p>
+          </div>
+          {topScore && (
+            <div>
+              <p className="font-display text-3xl font-extrabold text-cyan">{topScore}</p>
+              <p className="mt-0.5 font-body text-xs text-mist/50">closest to human</p>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Real credibility line — grounds the column so it doesn't float, and
           states the setup honestly (no invented vote counts). */}
       <p className="mt-12 font-body text-sm text-mist">
@@ -209,13 +228,18 @@ export default function PlayView({ voterId, stats, setStats, onNavigate }) {
   const [daily, setDaily] = useState(null); // full GET /api/daily response
   const [dailyBattleIndex, setDailyBattleIndex] = useState(0);
   const [totalVotes, setTotalVotes] = useState(0);
+  const [stackCount, setStackCount] = useState(0);
+  const [topScore, setTopScore] = useState(null);
 
   useEffect(() => {
     fetch('/api/leaderboard')
       .then((r) => r.json())
       .then((data) => {
-        const total = data.filter((s) => !s.isBaseline).reduce((sum, s) => sum + (s.votes || 0), 0);
+        const stacks = data.filter((s) => !s.isBaseline);
+        const total = stacks.reduce((sum, s) => sum + (s.votes || 0), 0);
         setTotalVotes(total);
+        setStackCount(stacks.length);
+        setTopScore(stacks.length > 0 ? stacks[0].humanness : null);
       })
       .catch(() => {});
   }, []);
@@ -492,7 +516,7 @@ export default function PlayView({ voterId, stats, setStats, onNavigate }) {
 
   return (
     <div className="flex flex-1 flex-col lg:grid lg:grid-cols-[1.05fr_minmax(0,520px)] lg:items-center lg:gap-14 lg:py-8">
-      <HeroCopy />
+      <HeroCopy totalVotes={totalVotes} stackCount={stackCount} topScore={topScore} />
       <section className="flex flex-1 flex-col lg:flex-none lg:rounded-[2rem] lg:border lg:border-white/10 lg:bg-grape/40 lg:p-7 lg:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.07),0_40px_90px_-40px_rgba(0,0,0,0.85)] lg:backdrop-blur">
         {totalVotes > 0 && (
           <div className="mb-4 flex justify-center">

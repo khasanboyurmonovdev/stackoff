@@ -8,6 +8,10 @@ import rateLimit from 'express-rate-limit';
 import { connectDb } from './db.js';
 import arenaRouter from './routes/arena.js';
 import shareRouter from './routes/share.js';
+import { Vote } from './models/Vote.js';
+import { Share } from './models/Share.js';
+import { DailyChallenge } from './models/DailyChallenge.js';
+import { DailyResult } from './models/DailyResult.js';
 
 const app = express();
 // Deployed behind Nginx (TLS termination). Trust the first proxy hop so
@@ -23,7 +27,12 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 app.use('/s', shareRouter);
 
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
-app.use(cors());
+app.use(
+  cors({
+    origin: ['https://vocalrank.xyz', 'http://localhost:5173'],
+    credentials: true,
+  })
+);
 app.use(express.json());
 
 // Serve the assembled clip audio. server/audio/ holds <clipId>.mp3 produced by
@@ -46,6 +55,15 @@ app.use('/api', arenaRouter);
 
 // Connect to Mongo BEFORE we start listening; connectDb exits on failure.
 await connectDb();
+
+// autoIndex is off (index builds don't run implicitly on every connect), so
+// sync the indexes declared on the schemas that define them explicitly.
+await Promise.all([
+  Vote.syncIndexes(),
+  Share.syncIndexes(),
+  DailyChallenge.syncIndexes(),
+  DailyResult.syncIndexes(),
+]);
 
 app.listen(PORT, () => {
   console.log(`Stackoff server listening on http://localhost:${PORT}`);
