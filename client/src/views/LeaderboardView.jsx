@@ -22,6 +22,14 @@ const STEPS = [
   },
 ];
 
+const SCENARIOS_DISPLAY = [
+  { id: 'interruption', icon: '🗣️', label: 'Barge-in', desc: 'You cut the AI off mid-sentence. Does it stop and listen — or bulldoze through?' },
+  { id: 'long-pause', icon: '⏸️', label: 'Endpointing', desc: 'You pause for three seconds mid-thought. Does it wait patiently — or jump in too early?' },
+  { id: 'backchannel', icon: '🔄', label: 'Overlap tolerance', desc: 'You and the AI talk at the same time. Does it handle the overlap gracefully?' },
+  { id: 'self-correction', icon: '✏️', label: 'Repair handling', desc: 'You correct yourself: "Tuesday — no, Wednesday." Does it catch the correction or lock onto the first thing you said?' },
+  { id: 'rapid-fire', icon: '⚡', label: 'Rapid-fire', desc: 'Fast, short exchanges back and forth. Can the AI keep up without lag or missing your cues?' },
+];
+
 // At/above this uncertainty a row has too little data to trust its point score,
 // so we mute the big number and let the ± band dominate.
 const UNCERTAIN = 30;
@@ -391,6 +399,30 @@ export default function LeaderboardView() {
         </div>
       </section>
 
+      {/* ── What we test ── */}
+      <section className="mt-16 lg:mt-20">
+        <p className="font-body text-xs font-bold uppercase tracking-[0.2em] text-cyan">
+          What we test
+        </p>
+        <h2 className="mt-2 font-display text-2xl font-extrabold text-cream lg:text-3xl">
+          Five conversational pressure points
+        </h2>
+        <p className="mt-2 font-body text-sm leading-relaxed text-mist lg:text-base">
+          Each round is built around a specific moment where voice AI breaks down. These aren't scripted reads — they're the messy parts of real conversation.
+        </p>
+        <div className="mt-8 space-y-3">
+          {SCENARIOS_DISPLAY.map((s) => (
+            <div key={s.id} className="flex gap-4 rounded-xl border border-white/[0.06] bg-white/[0.03] px-4 py-4 lg:px-5">
+              <span className="mt-0.5 text-xl leading-none">{s.icon}</span>
+              <div className="min-w-0 flex-1">
+                <p className="font-display text-sm font-bold text-cream">{s.label}</p>
+                <p className="mt-1 font-body text-sm leading-snug text-mist/70">{s.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {stacks?.length > 0 && (
         <div className="mt-12 grid grid-cols-3 gap-3 lg:mt-16">
           <div className="rounded-xl bg-white/[0.04] px-4 py-4 text-center">
@@ -413,6 +445,48 @@ export default function LeaderboardView() {
           </div>
         </div>
       )}
+
+      {/* ── Methodology ── */}
+      <section className="mt-16 lg:mt-20">
+        <p className="font-body text-xs font-bold uppercase tracking-[0.2em] text-cyan">
+          Methodology
+        </p>
+        <h2 className="mt-2 font-display text-2xl font-extrabold text-cream lg:text-3xl">
+          How the ranking works
+        </h2>
+        <div className="mt-6 space-y-6 font-body text-sm leading-relaxed text-mist lg:text-base">
+          <div>
+            <h3 className="font-display text-base font-bold text-cream">Blind comparison</h3>
+            <p className="mt-1.5">
+              Every round plays two audio clips from the same conversation scenario. One may be a real human. Voters don't see names, providers, or any identifying information until after they vote. Position (A vs B) is randomized 50/50.
+            </p>
+          </div>
+          <div>
+            <h3 className="font-display text-base font-bold text-cream">Elo rating system</h3>
+            <p className="mt-1.5">
+              Each vote updates both stacks' Elo ratings — the same system used in chess rankings. Early votes move scores more; as vote counts grow, ratings stabilize. Phantom prior votes prevent a single lucky matchup from distorting the leaderboard.
+            </p>
+          </div>
+          <div>
+            <h3 className="font-display text-base font-bold text-cream">Humanness score</h3>
+            <p className="mt-1.5">
+              The humanness number you see is the Elo rating rescaled so the real human baseline sits at 100. A stack scoring 80 means voters chose the human over that stack roughly 80% of the time they were compared. Higher is more human-sounding.
+            </p>
+          </div>
+          <div>
+            <h3 className="font-display text-base font-bold text-cream">Confidence (±)</h3>
+            <p className="mt-1.5">
+              The ± number reflects uncertainty — how much the score could shift as more votes come in. A stack with ±5 has a stable ranking. A stack with ±15 still needs more votes before its position is reliable. When uncertainty is high, the score dims on the leaderboard.
+            </p>
+          </div>
+          <div>
+            <h3 className="font-display text-base font-bold text-cream">What makes this different</h3>
+            <p className="mt-1.5">
+              Most voice benchmarks compare single-line reads: two voices say the same sentence, you pick the better one. That tests voice quality in isolation. Stackoff tests full deployable stacks in conversation — STT, LLM, and TTS together — across scenarios designed to expose how the stack handles turns, interruptions, pauses, and corrections. A config with a beautiful voice that talks over you will lose here.
+            </p>
+          </div>
+        </div>
+      </section>
 
       {voters?.voters?.length > 0 && (
         <section className="mt-16 lg:mt-20">
@@ -464,10 +538,26 @@ export default function LeaderboardView() {
         </section>
       )}
 
-      <p className="mt-10 text-center font-body text-sm italic text-mist/70 lg:text-base">
-        Sprint has the prettiest voice in the lineup — and the worst manners.{' '}
-        <span className="text-cyan/80 not-italic font-medium">See how it ranks →</span>
-      </p>
+      {/* ── CTA ── */}
+      <section className="mt-16 lg:mt-20 mb-8">
+        <div className="overflow-hidden rounded-2xl border border-white/[0.08] bg-gradient-to-br from-white/[0.04] to-white/[0.01] px-6 py-8 text-center lg:px-10 lg:py-10">
+          <p className="font-body text-xs font-bold uppercase tracking-[0.2em] text-cyan">
+            The rankings are live
+          </p>
+          <h2 className="mt-3 font-display text-2xl font-extrabold text-cream lg:text-3xl">
+            Help decide which stack sounds human
+          </h2>
+          <p className="mt-3 font-body text-sm leading-relaxed text-mist lg:text-base max-w-md mx-auto">
+            Every blind vote sharpens these numbers. It takes 30 seconds, and you might discover that the prettiest voice has the worst manners.
+          </p>
+          <button
+            onClick={() => { window.location.hash = '#/'; }}
+            className="press mt-6 inline-flex items-center gap-2 rounded-full bg-cyan px-6 py-3 font-display text-sm font-bold text-void-deep transition-transform hover:scale-[1.03]"
+          >
+            Play a round →
+          </button>
+        </div>
+      </section>
     </div>
   );
 }

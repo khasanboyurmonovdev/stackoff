@@ -208,6 +208,17 @@ export default function PlayView({ voterId, stats, setStats, onNavigate }) {
   const [mode, setMode] = useState('endless'); // 'endless' | 'daily'
   const [daily, setDaily] = useState(null); // full GET /api/daily response
   const [dailyBattleIndex, setDailyBattleIndex] = useState(0);
+  const [totalVotes, setTotalVotes] = useState(0);
+
+  useEffect(() => {
+    fetch('/api/leaderboard')
+      .then((r) => r.json())
+      .then((data) => {
+        const total = data.filter((s) => !s.isBaseline).reduce((sum, s) => sum + (s.votes || 0), 0);
+        setTotalVotes(total);
+      })
+      .catch(() => {});
+  }, []);
 
   const A = useAudio(battle ? clipPath(battle.clipA.audioUrl) : null);
   const B = useAudio(battle ? clipPath(battle.clipB.audioUrl) : null);
@@ -483,6 +494,14 @@ export default function PlayView({ voterId, stats, setStats, onNavigate }) {
     <div className="flex flex-1 flex-col lg:grid lg:grid-cols-[1.05fr_minmax(0,520px)] lg:items-center lg:gap-14 lg:py-8">
       <HeroCopy />
       <section className="flex flex-1 flex-col lg:flex-none lg:rounded-[2rem] lg:border lg:border-white/10 lg:bg-grape/40 lg:p-7 lg:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.07),0_40px_90px_-40px_rgba(0,0,0,0.85)] lg:backdrop-blur">
+        {totalVotes > 0 && (
+          <div className="mb-4 flex justify-center">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/[0.06] px-3 py-1 text-[11px] font-medium text-mist/60">
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              {totalVotes.toLocaleString()} blind votes & counting
+            </span>
+          </div>
+        )}
         <ModeToggle mode={mode} onModeChange={setMode} dailyLabel={dailyLabel} />
         {panel}
       </section>
