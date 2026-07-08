@@ -1,8 +1,12 @@
 import express from 'express';
 import { buildBattle, applyVote } from '../services/arena.js';
+import { signBattle } from '../services/battleToken.js';
+import { getOrCreateDaily, getDailyProgress, recordDailyResult, todayUTC } from '../services/daily.js';
 import { Stack } from '../models/Stack.js';
 import { Voter } from '../models/Voter.js';
+import { Clip } from '../models/Clip.js';
 import { humannessFromRating, uncertaintyBand } from '../lib/elo.js';
+import { displayName } from '../lib/displayName.js';
 import { Baseline } from '../models/Baseline.js';
 import { Share } from '../models/Share.js';
 import { nanoid } from 'nanoid';
@@ -165,6 +169,143 @@ router.get('/voter/:voterId/share', async (req, res, next) => {
     // the request's own origin (the server that owns /s).
     const base = process.env.PUBLIC_SHARE_BASE || `${req.protocol}://${req.get('host')}`;
     res.json({ id, url: `${base}/s/${id}` });
+  } catch (e) {
+    next(e);
+  }
+});
+
+// GET /api/daily?voterId=... — today's fixed golden-battle set (shared by every
+// voter), freshly signed tokens per battle, and this voter's progress if given.
+router.get('/daily', async (req, res, next) => {
+  try {
+    const dateStr = todayUTC();
+    const daily = await getOrCreateDaily(dateStr);
+    const voterId = typeof req.query.voterId === 'string' ? req.query.voterId : null;
+    const progress = voterId ? await getDailyProgress(dateStr, voterId) : null;
+
+    const clipIds = daily.battles.flatMap((b) => [b.clipAId, b.clipBId]);
+    const clips = await Clip.find({ _id: { $in: clipIds } }).lean();
+    const clipById = Object.fromEntries(clips.map((c) => [String(c._id), c]));
+
+    const battles = daily.battles.map((b, i) => {
+      const clipAId = String(b.clipAId);
+      const clipBId = String(b.clipBId);
+      return {
+        index: i,
+        token: signBattle({
+          battleId: `daily-${dateStr}-${i}`,
+          scenarioId: b.scenarioId,
+          clipAId,
+          clipBId,
+          kind: b.kind,
+          iat: Date.now(),
+        }),
+        scenarioId: b.scenarioId,
+        clipA: { id: clipAId, audioUrl: clipById[clipAId]?.audioUrl, durationMs: clipById[clipAId]?.durationMs },
+        clipB: { id: clipBId, audioUrl: clipById[clipBId]?.audioUrl, durationMs: clipById[clipBId]?.durationMs },
+        voted: progress?.results?.some((r) => r.battleIndex === i) || false,
+      };
+    });
+
+    res.json({
+      date: dateStr,
+      total: daily.battles.length,
+      battles,
+      progress: progress
+        ? { score: progress.score, completed: progress.results.length }
+        : { score: 0, completed: 0 },
+    });
+  } catch (e) {
+    next(e);
+  }
+});
+
+// POST /api/daily/vote — body { token, winnerClipId, voterId, battleIndex }.
+// Applies the vote through the same path as a normal battle (Elo + voter stats
+// all update identically), then additionally records the outcome against the
+// voter's daily progress.
+router.post('/daily/vote', async (req, res, next) => {
+  const { token, winnerClipId, voterId, battleIndex } = req.body ?? {};
+  if (
+    typeof token !== 'string' ||
+    typeof winnerClipId !== 'string' ||
+    typeof voterId !== 'string' ||
+    typeof battleIndex !== 'number' ||
+    !token ||
+    !winnerClipId ||
+    !voterId
+  ) {
+    return res.status(400).json({ error: 'token, winnerClipId, voterId and battleIndex are required' });
+  }
+
+  try {
+    const reveal = await applyVote({ token, winnerClipId, voterId });
+    const dateStr = todayUTC();
+    const [result, daily] = await Promise.all([
+      recordDailyResult(dateStr, voterId, battleIndex, reveal.correct === true),
+      getOrCreateDaily(dateStr),
+    ]);
+
+    res.json({
+      ...reveal,
+      dailyProgress: {
+        score: result.score,
+        completed: result.results.length,
+        total: daily.battles.length,
+      },
+    });
+  } catch (e) {
+    if (e.code === 'DUPLICATE') return res.status(409).json({ error: e.message });
+    if (e.code === 'BAD_WINNER') return res.status(400).json({ error: e.message });
+    if (e.code === 'GONE') return res.status(409).json({ error: e.message });
+    return res.status(400).json({ error: 'invalid or expired battle token' });
+  }
+});
+
+// GET /api/voters/top?voterId=... — voter leaderboard by golden-ears accuracy
+// (min 5 golden attempts to qualify, avoiding 1-vote lucky guesses), tiebroken
+// by best streak. `voterId`, if given, resolves that voter's own rank even when
+// they're outside the top 20 (or null if they don't meet the attempt floor).
+router.get('/voters/top', async (req, res, next) => {
+  try {
+    const ranked = await Voter.aggregate([
+      { $match: { goldenAttempts: { $gte: 5 } } },
+      { $addFields: { accuracy: { $divide: ['$goldenCorrect', '$goldenAttempts'] } } },
+      { $sort: { accuracy: -1, bestStreak: -1 } },
+      { $limit: 20 },
+      { $project: { _id: 1, accuracy: 1, bestStreak: 1, goldenAttempts: 1, votes: 1 } },
+    ]);
+
+    const voters = ranked.map((v, i) => ({
+      rank: i + 1,
+      name: displayName(v._id),
+      accuracy: v.accuracy,
+      bestStreak: v.bestStreak,
+      goldenAttempts: v.goldenAttempts,
+    }));
+
+    let you = null;
+    const voterId = typeof req.query.voterId === 'string' ? req.query.voterId : null;
+    if (voterId) {
+      const voter = await Voter.findById(voterId).lean();
+      if (voter && voter.goldenAttempts >= 5) {
+        const accuracy = voter.goldenCorrect / voter.goldenAttempts;
+        const ahead = await Voter.aggregate([
+          { $match: { goldenAttempts: { $gte: 5 } } },
+          { $addFields: { accuracy: { $divide: ['$goldenCorrect', '$goldenAttempts'] } } },
+          {
+            $match: {
+              $or: [{ accuracy: { $gt: accuracy } }, { accuracy, bestStreak: { $gt: voter.bestStreak } }],
+            },
+          },
+          { $count: 'n' },
+        ]);
+        const rank = (ahead[0]?.n || 0) + 1;
+        you = { rank, name: displayName(voter._id), accuracy, bestStreak: voter.bestStreak };
+      }
+    }
+
+    res.json({ voters, you });
   } catch (e) {
     next(e);
   }

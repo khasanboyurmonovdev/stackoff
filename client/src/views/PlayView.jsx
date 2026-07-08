@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import PlayCard from '../components/PlayCard';
 import Reveal from '../components/Reveal';
 import useAudio from '../lib/useAudio';
-import { clipPath, fetchBattle, postVote } from '../lib/api';
+import { clipPath, fetchBattle, postVote, fetchDaily, submitDailyVote } from '../lib/api';
 import { getVoteToken } from '../lib/turnstile';
 import { FALLBACK_PROMPT, SCENARIO_PROMPTS } from '../lib/scenarios';
 
@@ -98,6 +98,46 @@ function VoteButton({ side, accent, armed, loading, onClick }) {
   );
 }
 
+// Endless / Daily mode switch, pinned above the battle panel regardless of
+// status (loading/empty/error/ready) so a stuck mode is always escapable.
+function ModeToggle({ mode, onModeChange, dailyLabel }) {
+  return (
+    <div className="mb-4 flex justify-center gap-2">
+      <button
+        type="button"
+        onClick={() => onModeChange('endless')}
+        className={`rounded-full px-4 py-1.5 text-xs font-bold uppercase tracking-wider transition-colors ${
+          mode === 'endless' ? 'bg-white/10 text-cream' : 'text-mist/50 hover:text-mist'
+        }`}
+      >
+        Endless
+      </button>
+      <button
+        type="button"
+        onClick={() => onModeChange('daily')}
+        className={`rounded-full px-4 py-1.5 text-xs font-bold uppercase tracking-wider transition-colors ${
+          mode === 'daily' ? 'bg-cyan/15 text-cyan' : 'text-mist/50 hover:text-mist'
+        }`}
+      >
+        Daily · {dailyLabel}
+      </button>
+    </div>
+  );
+}
+
+// Map one signed daily battle (server shape: { token, scenarioId, clipA: {id,
+// audioUrl, durationMs}, clipB: {...} }) into the same battle shape the
+// endless flow produces, so the rest of the machine (playback, vote gating,
+// reveal) never has to know which mode it's in.
+function dailyBattleToBattle(b) {
+  return {
+    scenarioId: b.scenarioId,
+    token: b.token,
+    clipA: { clipId: b.clipA.id, audioUrl: b.clipA.audioUrl, durationMs: b.clipA.durationMs },
+    clipB: { clipId: b.clipB.id, audioUrl: b.clipB.audioUrl, durationMs: b.clipB.durationMs },
+  };
+}
+
 // --- Desktop-only hero copy that frames the game beside the featured panel -----
 
 function HeroCopy() {
@@ -160,11 +200,14 @@ function HeroCopy() {
 // -----------------------------------------------------------------------------
 
 export default function PlayView({ voterId, stats, setStats, onNavigate }) {
-  const [status, setStatus] = useState('loading'); // loading | ready | reveal | empty | error
+  const [status, setStatus] = useState('loading'); // loading | ready | reveal | empty | error | daily-complete
   const [battle, setBattle] = useState(null);
   const [reveal, setReveal] = useState(null);
   const [submitting, setSubmitting] = useState(null); // 'A' | 'B' | null
   const [nudge, setNudge] = useState(false);
+  const [mode, setMode] = useState('endless'); // 'endless' | 'daily'
+  const [daily, setDaily] = useState(null); // full GET /api/daily response
+  const [dailyBattleIndex, setDailyBattleIndex] = useState(0);
 
   const A = useAudio(battle ? clipPath(battle.clipA.audioUrl) : null);
   const B = useAudio(battle ? clipPath(battle.clipB.audioUrl) : null);
@@ -187,9 +230,53 @@ export default function PlayView({ voterId, stats, setStats, onNavigate }) {
     }
   }, []);
 
+  // Move the daily flow to battle index `idx`: either the next unvoted battle,
+  // or the completion screen once idx runs off the end. Shared by the initial
+  // daily fetch and by "Next" so there's one place that owns this transition.
+  const enterDaily = useCallback((d, idx) => {
+    setReveal(null);
+    setNudge(false);
+    setSubmitting(null);
+    setDailyBattleIndex(idx);
+    if (!d || idx >= d.battles.length) {
+      setBattle(null);
+      setStatus('daily-complete');
+      return;
+    }
+    setBattle(dailyBattleToBattle(d.battles[idx]));
+    setStatus('ready');
+  }, []);
+
+  const loadDailyChallenge = useCallback(async () => {
+    setStatus('loading');
+    try {
+      const d = await fetchDaily(voterId);
+      setDaily(d);
+      const firstUnvoted = d.battles.findIndex((b) => !b.voted);
+      enterDaily(d, firstUnvoted >= 0 ? firstUnvoted : d.battles.length);
+    } catch {
+      setStatus('error');
+    }
+  }, [voterId, enterDaily]);
+
   useEffect(() => {
-    loadBattle();
-  }, [loadBattle]);
+    if (mode === 'daily') loadDailyChallenge();
+    else loadBattle();
+  }, [mode, loadBattle, loadDailyChallenge]);
+
+  // "Next" means different things per mode: a fresh random battle in endless,
+  // or advancing to the next daily battle (or the completion screen) in daily.
+  const handleNext = useCallback(() => {
+    if (mode === 'daily') {
+      enterDaily(daily, dailyBattleIndex + 1);
+    } else {
+      loadBattle();
+    }
+  }, [mode, daily, dailyBattleIndex, enterDaily, loadBattle]);
+
+  // Mode-aware retry for the empty/error screens — resumes whichever mode the
+  // player was in rather than always snapping back to endless.
+  const retry = mode === 'daily' ? loadDailyChallenge : loadBattle;
 
   const playA = () => {
     B.stop();
@@ -214,11 +301,24 @@ export default function PlayView({ voterId, stats, setStats, onNavigate }) {
     B.stop();
     setSubmitting(side);
     try {
-      // Mint a fresh, single-use Turnstile token for this vote (undefined when
-      // Turnstile is disabled). A mint failure throws into the catch below, which
-      // surfaces the soft-retry error screen instead of a silently dead button.
-      const turnstileToken = await getVoteToken();
-      const rev = await postVote({ token: battle.token, winnerClipId, voterId, turnstileToken });
+      let rev;
+      if (mode === 'daily') {
+        // Daily votes go through the dedicated endpoint (no Turnstile — the
+        // daily set is fixed and small, so it isn't gated like endless voting)
+        // and still update Elo/voter stats identically server-side.
+        rev = await submitDailyVote({ token: battle.token, winnerClipId, voterId, battleIndex: dailyBattleIndex });
+        setDaily((d) => {
+          if (!d) return d;
+          const battles = d.battles.map((b, i) => (i === dailyBattleIndex ? { ...b, voted: true } : b));
+          return { ...d, battles, progress: rev.dailyProgress };
+        });
+      } else {
+        // Mint a fresh, single-use Turnstile token for this vote (undefined when
+        // Turnstile is disabled). A mint failure throws into the catch below, which
+        // surfaces the soft-retry error screen instead of a silently dead button.
+        const turnstileToken = await getVoteToken();
+        rev = await postVote({ token: battle.token, winnerClipId, voterId, turnstileToken });
+      }
       setReveal({ ...rev, pickedSide: side });
       setStats((s) => {
         const base = s || { votes: 0, accuracy: 0, currentStreak: 0, bestStreak: 0 };
@@ -236,7 +336,8 @@ export default function PlayView({ voterId, stats, setStats, onNavigate }) {
       setStatus('reveal');
     } catch (e) {
       if (e.code === 'DUPLICATE') {
-        loadBattle();
+        if (mode === 'daily') loadDailyChallenge();
+        else loadBattle();
       } else {
         setStatus('error');
       }
@@ -305,6 +406,10 @@ export default function PlayView({ voterId, stats, setStats, onNavigate }) {
     </>
   );
 
+  const dailyTotal = daily?.total ?? 3;
+  const dailyCompleted = daily?.progress?.completed ?? 0;
+  const dailyLabel = dailyTotal > 0 && dailyCompleted >= dailyTotal ? '✓' : `${dailyCompleted}/${dailyTotal}`;
+
   let panel;
   if (status === 'loading') {
     panel = <Skeleton />;
@@ -317,7 +422,7 @@ export default function PlayView({ voterId, stats, setStats, onNavigate }) {
         action={
           <button
             type="button"
-            onClick={loadBattle}
+            onClick={retry}
             className="press mt-5 rounded-2xl bg-cream px-6 py-3 font-display text-lg font-extrabold text-void"
           >
             Try again
@@ -334,13 +439,33 @@ export default function PlayView({ voterId, stats, setStats, onNavigate }) {
         action={
           <button
             type="button"
-            onClick={loadBattle}
+            onClick={retry}
             className="press mt-5 rounded-2xl bg-cream px-6 py-3 font-display text-lg font-extrabold text-void"
           >
             Retry
           </button>
         }
       />
+    );
+  } else if (status === 'daily-complete') {
+    panel = (
+      <div className="flex flex-1 flex-col items-center justify-center py-12 text-center">
+        <p className="text-4xl" aria-hidden>
+          🏆
+        </p>
+        <h2 className="mt-3 font-display text-2xl font-extrabold text-cream">Daily complete!</h2>
+        <p className="mt-2 font-body text-lg font-bold text-cyan">
+          {daily?.progress?.score ?? 0}/{daily?.total ?? 0} correct
+        </p>
+        <p className="mt-1 font-body text-sm text-mist">Come back tomorrow for a new challenge</p>
+        <button
+          type="button"
+          onClick={() => setMode('endless')}
+          className="press mt-6 rounded-full bg-white/10 px-6 py-2.5 text-sm font-bold text-cream"
+        >
+          Keep playing endless →
+        </button>
+      </div>
     );
   } else {
     panel = machine;
@@ -350,7 +475,7 @@ export default function PlayView({ voterId, stats, setStats, onNavigate }) {
   // grid below is not rendered) so nothing bleeds through behind it.
   if (status === 'reveal' && reveal) {
     return (
-      <Reveal reveal={reveal} stats={stats} onNext={loadBattle} onViewStats={() => onNavigate('profile')} />
+      <Reveal reveal={reveal} stats={stats} onNext={handleNext} onViewStats={() => onNavigate('profile')} />
     );
   }
 
@@ -358,6 +483,7 @@ export default function PlayView({ voterId, stats, setStats, onNavigate }) {
     <div className="flex flex-1 flex-col lg:grid lg:grid-cols-[1.05fr_minmax(0,520px)] lg:items-center lg:gap-14 lg:py-8">
       <HeroCopy />
       <section className="flex flex-1 flex-col lg:flex-none lg:rounded-[2rem] lg:border lg:border-white/10 lg:bg-grape/40 lg:p-7 lg:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.07),0_40px_90px_-40px_rgba(0,0,0,0.85)] lg:backdrop-blur">
+        <ModeToggle mode={mode} onModeChange={setMode} dailyLabel={dailyLabel} />
         {panel}
       </section>
     </div>

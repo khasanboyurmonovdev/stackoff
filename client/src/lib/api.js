@@ -92,3 +92,30 @@ export async function fetchShareUrl(voterId) {
   if (!r.ok) throw new Error(`share ${r.status}`);
   return r.json();
 }
+
+export async function fetchDaily(voterId) {
+  const r = await fetch(`/api/daily?voterId=${encodeURIComponent(voterId)}`);
+  if (!r.ok) throw new Error(`daily ${r.status}`);
+  return r.json();
+}
+
+export async function submitDailyVote({ token, winnerClipId, voterId, battleIndex }) {
+  const r = await fetch('/api/daily/vote', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token, winnerClipId, voterId, battleIndex }),
+  });
+  if (r.status === 409) {
+    const e = new Error('already voted');
+    e.code = 'DUPLICATE';
+    throw e;
+  }
+  if (!r.ok) throw new Error(`daily-vote ${r.status}`);
+  return r.json();
+}
+
+export async function fetchVoterLeaderboard(voterId) {
+  const r = await fetch(`/api/voters/top?voterId=${encodeURIComponent(voterId)}`);
+  if (!r.ok) throw new Error(`voter-leaderboard ${r.status}`);
+  return r.json();
+}

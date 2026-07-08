@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { fetchLeaderboard } from '../lib/api';
+import { fetchLeaderboard, fetchVoterLeaderboard, getVoterId } from '../lib/api';
 import CountUp from '../components/CountUp';
 import StackMark from '../components/StackMark';
 import { stackTheme } from '../lib/stacks';
@@ -255,6 +255,7 @@ function Skeleton() {
 export default function LeaderboardView() {
   const [status, setStatus] = useState('loading'); // loading | ready | empty | error
   const [rows, setRows] = useState([]);
+  const [voters, setVoters] = useState(null);
 
   useEffect(() => {
     let alive = true;
@@ -272,6 +273,19 @@ export default function LeaderboardView() {
         if (alive) setStatus('error');
       }
     })();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  // Independent of the stack leaderboard's status: a voter-leaderboard failure
+  // shouldn't block or error out the stacks board above it, so it's fetched on
+  // its own and just silently omits the section on failure.
+  useEffect(() => {
+    let alive = true;
+    fetchVoterLeaderboard(getVoterId())
+      .then((v) => alive && setVoters(v))
+      .catch(() => {});
     return () => {
       alive = false;
     };
@@ -398,6 +412,56 @@ export default function LeaderboardView() {
             </p>
           </div>
         </div>
+      )}
+
+      {voters?.voters?.length > 0 && (
+        <section className="mt-16 lg:mt-20">
+          <p className="font-body text-xs font-bold uppercase tracking-[0.2em] text-cyan">Golden ears</p>
+          <h2 className="mt-2 font-display text-2xl font-extrabold text-cream lg:text-3xl">Top listeners</h2>
+          <p className="mt-2 font-body text-sm leading-relaxed text-mist lg:text-base">
+            Ranked by golden-ears accuracy. Minimum 5 rounds to qualify.
+          </p>
+
+          <div className="mt-6 space-y-2">
+            {voters.voters.map((v) => (
+              <div
+                key={v.rank}
+                className={`flex items-center gap-3 rounded-xl px-4 py-3 ${
+                  voters.you && v.rank === voters.you.rank ? 'border border-cyan/20 bg-cyan/10' : 'bg-white/[0.03]'
+                }`}
+              >
+                <span className="w-8 text-right font-display text-lg font-bold text-mist/40">{v.rank}</span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-body text-sm font-medium text-cream">
+                    {v.name}
+                    {voters.you && v.rank === voters.you.rank && (
+                      <span className="ml-2 text-[10px] font-bold uppercase tracking-wider text-cyan">You</span>
+                    )}
+                  </p>
+                  <p className="font-body text-xs text-mist/50">
+                    {v.goldenAttempts} rounds · best streak {v.bestStreak}
+                  </p>
+                </div>
+                <span className="font-display text-lg font-bold text-cream">{Math.round(v.accuracy * 100)}%</span>
+              </div>
+            ))}
+          </div>
+
+          {voters.you && !voters.voters.some((v) => v.rank === voters.you.rank) && (
+            <div className="mt-3 flex items-center gap-3 rounded-xl border border-cyan/20 bg-cyan/10 px-4 py-3">
+              <span className="w-8 text-right font-display text-lg font-bold text-mist/40">{voters.you.rank}</span>
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-body text-sm font-medium text-cream">
+                  {voters.you.name}
+                  <span className="ml-2 text-[10px] font-bold uppercase tracking-wider text-cyan">You</span>
+                </p>
+              </div>
+              <span className="font-display text-lg font-bold text-cream">
+                {Math.round(voters.you.accuracy * 100)}%
+              </span>
+            </div>
+          )}
+        </section>
       )}
 
       <p className="mt-10 text-center font-body text-sm italic text-mist/70 lg:text-base">
