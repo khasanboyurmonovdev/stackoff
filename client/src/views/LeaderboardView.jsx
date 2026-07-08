@@ -4,6 +4,24 @@ import CountUp from '../components/CountUp';
 import StackMark from '../components/StackMark';
 import { stackTheme } from '../lib/stacks';
 
+const STEPS = [
+  {
+    num: '01',
+    title: 'Listen blind',
+    desc: 'Two clips play — both from a real phone call. One might be human. You don\'t know which stack built either voice.',
+  },
+  {
+    num: '02',
+    title: "Vote on who's human",
+    desc: 'Not just "which sounds better" — which one handles the conversation like a real person? Pauses, interruptions, all of it.',
+  },
+  {
+    num: '03',
+    title: "See what's under the hood",
+    desc: 'The reveal shows the full stack — STT, LLM, TTS — plus how each one behaves in conversation. Every vote reshapes the leaderboard.',
+  },
+];
+
 // At/above this uncertainty a row has too little data to trust its point score,
 // so we mute the big number and let the ± band dominate.
 const UNCERTAIN = 30;
@@ -286,6 +304,10 @@ export default function LeaderboardView() {
   const stacks = rows.filter((r) => !r.isBaseline);
   const [champion, ...rest] = stacks;
 
+  const totalVotes = stacks.reduce((sum, s) => sum + (s.votes || 0), 0);
+  const stackCount = stacks.length;
+  const sprintScore = stacks.find((s) => s.id === 'sprint')?.humanness ?? 0;
+
   return (
     <div className="flex flex-1 flex-col">
       <Header />
@@ -321,6 +343,67 @@ export default function LeaderboardView() {
           ))}
         </div>
       </div>
+
+      {/* ── How it works ── */}
+      <section className="mt-16 lg:mt-20">
+        <p className="font-body text-xs font-bold uppercase tracking-[0.2em] text-cyan">How it works</p>
+        <h2 className="mt-2 font-display text-2xl font-extrabold text-cream lg:text-3xl">
+          Three rounds to the truth
+        </h2>
+        <p className="mt-2 font-body text-sm leading-relaxed text-mist lg:text-base">
+          Every vote trains a live Elo leaderboard — not just on voice quality, but on how well each AI stack
+          handles real conversation.
+        </p>
+
+        <div className="mt-8 grid gap-4 sm:grid-cols-3">
+          {STEPS.map((step) => (
+            <div
+              key={step.num}
+              className="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.03] px-5 py-6"
+            >
+              <span
+                className="pointer-events-none absolute right-4 top-3 select-none font-display text-[3.5rem] font-extrabold leading-none text-white/[0.04]"
+                aria-hidden
+              >
+                {step.num}
+              </span>
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-cyan/10 font-display text-sm font-bold text-cyan">
+                {step.num}
+              </span>
+              <h3 className="mt-3 font-display text-base font-bold text-cream">{step.title}</h3>
+              <p className="mt-1.5 font-body text-sm leading-snug text-mist">{step.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {stacks?.length > 0 && (
+        <div className="mt-12 grid grid-cols-3 gap-3 lg:mt-16">
+          <div className="rounded-xl bg-white/[0.04] px-4 py-4 text-center">
+            <p className="font-display text-2xl font-extrabold text-cream">{totalVotes}</p>
+            <p className="mt-1 font-body text-[11px] font-medium uppercase tracking-widest text-mist/60">
+              Blind votes
+            </p>
+          </div>
+          <div className="rounded-xl bg-white/[0.04] px-4 py-4 text-center">
+            <p className="font-display text-2xl font-extrabold text-cream">{stackCount}</p>
+            <p className="mt-1 font-body text-[11px] font-medium uppercase tracking-widest text-mist/60">
+              Full stacks
+            </p>
+          </div>
+          <div className="rounded-xl bg-white/[0.04] px-4 py-4 text-center">
+            <p className="font-display text-2xl font-extrabold text-cyan">{sprintScore}</p>
+            <p className="mt-1 font-body text-[11px] font-medium uppercase tracking-widest text-mist/60">
+              Sprint humanness
+            </p>
+          </div>
+        </div>
+      )}
+
+      <p className="mt-10 text-center font-body text-sm italic text-mist/70 lg:text-base">
+        Sprint has the prettiest voice in the lineup — and the worst manners.{' '}
+        <span className="text-cyan/80 not-italic font-medium">See how it ranks →</span>
+      </p>
     </div>
   );
 }

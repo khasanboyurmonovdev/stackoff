@@ -16,6 +16,31 @@ export default function AppShell({ view, stats, onNavigate, children }) {
         {children}
       </main>
 
+      <footer className="mt-16 hidden border-t border-white/[0.06] md:block">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
+          <p className="font-body text-xs text-mist/40">Stackoff — blind-testing voice AI stacks</p>
+          <div className="flex items-center gap-4">
+            <a
+              href="https://github.com/khasanboyurmonovdev/stackoff"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-body text-xs text-mist/40 transition-colors hover:text-cream/60"
+            >
+              GitHub
+            </a>
+            <span className="text-mist/20">·</span>
+            <a
+              href="https://vocalrank.xyz"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-body text-xs text-mist/40 transition-colors hover:text-cream/60"
+            >
+              vocalrank.xyz
+            </a>
+          </div>
+        </div>
+      </footer>
+
       <BottomTabs view={view} onNavigate={onNavigate} />
     </div>
   );
